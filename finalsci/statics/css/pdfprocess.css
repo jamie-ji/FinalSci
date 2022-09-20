@@ -1,0 +1,56 @@
+.body{
+    width: 100%;
+    height: 1000px;
+
+}
+.header{
+    background-color: #2f4056;
+    height: 70px;
+}
+.logo{
+    width:100%;
+    height:100%;
+    transform: scale(1);
+}
+.left{
+    width: 500px;
+    float: left;
+    padding-top: 50px;
+    padding-left: 135px;
+}
+.right{
+    width: 500px;
+    float: right;
+    padding-top: 200px;
+    padding-right: 150px;
+}
+.hr-twill-colorful{
+    border: 0;
+    padding: 3px;
+    background: linear-gradient(135deg, red, orange,green, blue, purple);
+    --mask-image: repeating-linear-gradient(135deg, #000 0px, #000 1px, transparent 1px, transparent 6px);
+    -webkit-mask-image: var(--mask-image);
+    mask-image: var(--mask-image);
+}
+.foot{
+    width: 100%;
+    height: 200px;
+}
+.ground{
+    width: 100%;
+    height: 150px;
+    
+    background-color: #2f4056;
+}
+.ground_pic{
+    width: 15%;
+    padding-top: 40px;
+    padding-left: 400px;
+    float: left;
+}
+.ground_word{
+    font-size: medium;
+    padding-top: 50px;
+    padding-left: 700px;
+    color: white;
+}

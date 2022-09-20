@@ -1,0 +1,27 @@
+				标题为:yolox: exceeding yolo series in 2021
+
+一作为:Zheng Ge∗ Songtao Liu∗† Feng Wang Zeming Li
+abstract：In this report, we present some experienced improve-ments to YOLO series, forming a new high-performancedetector — YOLOX. We switch the YOLO detector to ananchor-free manner and conduct other advanced detectiontechniques, i.e., a decoupled head and the leading labelassignment strategy SimOTA to achieve state-of-the-art re-sults across a large scale range of models: For YOLO-Nano with only 0.91M parameters and 1.08G FLOPs, weget 25.3% AP on COCO, surpassing NanoDet by 1.8% AP;for YOLOv3, one of the most widely used detectors in in-dustry, we boost it to 47.3% AP on COCO, outperform-ing the current best practice by 3.0% AP; for YOLOX-Lwith roughly the same amount of parameters as YOLOv4-CSP, YOLOv5-L, we achieve 50.0% AP on COCO at aspeed of 68.9 FPS on Tesla V100, exceeding YOLOv5-Lby 1.8% AP. Further, we won the 1st Place on StreamingPerception Challenge (Workshop on Autonomous Drivingat CVPR 2021) using a single YOLOX-L model. We hopethis report can provide useful experience for developers and
+
+摘要：在这个报告中，我们介绍了YOLO系列的一些经验改进，形成了一个新的高性能检测器- YOLOX。我们将YOLO探测器切换到无锚方式，并进行其他先进的检测技术，即解耦头部和领先的标签分配策略SimOTA，以实现在大范围模型的最先进的结果:对于只有0.91M参数和1.08G失败率的YOLO-Nano，我们在COCO上得到25.3%的AP，比NanoDet高出1.8% AP;对于工业上使用最广泛的探测器之一YOLOv3，我们在COCO上提高到47.3% AP，比目前的最佳实践高出3.0% AP;YOLOX-Lwith大致相同数量的参数作为YOLOv4-CSP, YOLOv5-L,我们达到50.0% AP可可在FPS 68.9特斯拉V100方面,超过1.8% YOLOv5-Lby美联社。进一步,我们赢得了第一名StreamingPerception挑战(车间自主Drivingat CVPR 2021)使用单一YOLOX-L模型。希望本报告能为开发人员提供有益的经验
+
+1. 介绍
+YOLO系列始终追求实时应用的最佳速度和精度权衡。目前，YOLOv5在13.7毫秒时对COCO的AP达到48.2%，表现最佳。YOLOX-L在640 × 640分辨率下达到50.0% AP，比对应的YOLov5-L高出1.8% AP。
+
+2. YOLOX
+CNN.com将在每周的旅行快照画廊中展示iReporter的照片。请为下周提交你在美国最好的照片。下周三访问CNN.com/Travel以获得一个新的快照库。参观画廊，每周精选来自全球各地的快照。
+
+2．1． YOLOX-DarkNet53
+我们在COCO train2017上对模特进行了总共300个epoch的训练，5个epoch的热身。我们选择YOLOv3[25]和Darknet53作为我们的基础中心线。我们使用的学习率为。lr×BatchSize/64(线性缩放[8])，初始lr =。0.01和余弦对照表。解耦头对于YOLOX的端到端版本至关重要。
+
+4“锚点”一词是指锚点上下文中的“锚点”
+我们使用SimOTA为YOLO探测器分配正网格和负网格。SimOTA不仅减少了训练时间，而且避免了Knopp算法中额外的求解器超参数。我们遵循[39]添加两个额外的conv层，一对一的标签分配，并停止梯度。这使得检测器能够执行端到端方式，但略微降低了性能和推断速度。
+
+2.2。其他的脊椎
+我们在不同尺寸和尺寸的其他型号上测试YOLOX。我们使用确切的YOLOv5的骨干包括CSPNet、SiLU激活和PAN[19]头。我们也遵循其标度规律，生成YOLOC-自身免疫S、YOLOx-M、Y OLOX-L和YOLox-X模型。对于移动设备，我们采用深度卷积的方法构建了一个YOL Ox-Nano模型，该模型只有0.91M的参数和1.08G的FLOPs。
+
+3.与SOTA的比较
+对于图1中的所有YOLO系列，我们使用相同的硬件和代码库，绘制某种程度上受控的速度/精度曲线。我们注意到，有些高性能模型的模型尺寸较大，如Scale-YOLOv4[30]和YOLov5-P6[7]。而目前基于Transformer的探测-谴责子将精度- sota推至约60 AP。我们发现，在30帧/秒的数据流上，该度量的最佳折衷点是一个具有YOX-L模型的强大模型。
+
+5. 结论
+YOLOX在所有模型尺寸之间实现了比其他同行更好的速度和准确性之间的权衡。值得注意的是，我们将YOLOv3的架构提升到了47.3% AP。由于其广泛的兼容性，YOLOv3仍然是工业上使用最广泛的探测器之一。

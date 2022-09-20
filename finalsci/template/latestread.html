@@ -1,0 +1,99 @@
+{% extends 'self_index.html' %}
+{% load static %}
+{% block title %}最近阅读{% endblock %}
+{% block css %}{% endblock %}
+
+{% block breadcrumb %}
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+      <h1 style="color: white;font-weight: bold;">
+        最近阅读
+        <small>latest read record</small>
+      </h1>
+      <ol class="breadcrumb">
+        <li><a href="/self_index/"><i class="fa fa-dashboard" style="color: white;font-weight: bold;"></i> 主页</a></li>
+        <li class="active" style="color: white;font-weight: bold;">最近阅读</li>
+      </ol>
+    </section>
+{% endblock %}
+
+{% block content %}
+
+<!-- Main content -->
+<section class="content">
+  <div class="row">
+    <div class="col-xs-12">
+
+    <div class="box">
+    <div class="box-header">
+      <h3 class="box-title">以下是您最近阅读的文章：<small></small></h3>
+    </div>
+    <!-- /.box-header -->
+    <div class="box-body">
+      <table id="articles_table" class="table table-bordered table-striped">
+        <thead>
+        <tr>
+          <th>序号</th>
+          <th>文章标题</th>
+          <th>第一作者</th>
+          <th>发表日期</th>
+          <th>来源</th>
+          <th>地址</th>
+          <th>阅读日期</th>
+        </tr>
+        </thead>
+        <tbody>
+
+            {% for article in articles %}
+            {% if article.belonger == request.session.user_name  %}
+            <tr>
+              <td>{{ forloop.counter }}</td>
+              {% if article.article_title != '' %}
+                  <td class="text-green text-bold">{{ article.article_title }}</td>
+              {% endif %}
+
+              <td>{{ article.authors }}</td>
+              <td>{{ article.publish_date }}</td>
+
+                {% if article.onlineorlocal == 'online' %}
+                  <td><label class="label label-success">{{ article.onlineorlocal }}</label></td>
+                {% elif article.onlineorlocal == 'local' %}
+                  <td><label class="label label-warning">{{ article.onlineorlocal }}</label></td>
+                
+                {% endif %}
+              {% if article.onlineorlocal == 'online' %}
+              <td><a href="http://{{ article.url }}" target="blank">{{ article.url }}</a></td>
+              {% elif article.onlineorlocal == 'local' %}
+              <td>{{ article.url }}</td>
+              {% endif %}
+              <td>{{ article.readdate }}</td>
+              
+            </tr>
+            {% endif %}
+            {% empty %}
+              <tr>没有数据！</tr>
+            {% endfor %}
+
+        </tbody>
+        
+      </table>
+    </div>
+    <!-- /.box-body -->
+  </div>
+  <!-- /.box -->
+    </div>
+<!-- /.col -->
+  </div>
+<!-- /.row -->
+</section>
+
+
+
+{% endblock %}
+
+{% block script %}
+<script src="{% static 'adminlet/bower_components/datatables.net/js/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'adminlet/bower_components/datatables.net-bs/js/dataTables.bootstrap.min.js' %}"></script>
+<script> $(function () { $("articls_table").DataTable({ "paging": true,
+"lengthChange": true,  "searching": true,  "ordering": true, "info": true,  "autoWidth": false,  }); }); </script>
+{% endblock %}

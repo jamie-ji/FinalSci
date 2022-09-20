@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+{% load static %}
+<head>
+	<meta charset="UTF-8">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" >
+	
+    <title>FinalSci你的最后一个文献管理系统</title>
+    <link href="https://cdn.bootcss.com/twitter-bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+	<link rel="stylesheet" href="{% static 'layui/css/layui.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/index.css' %}">
+</head>
+<body>
+
+    <div class="header">
+
+        <div class="layui-row">
+            <div class="layui-col-xs2">
+                <a href="http://127.0.0.1:8000/"><img src="{% static 'imgages/logo.jpg' %}" class="logo"></a>
+            </div>
+            <div class="layui-col-xs8">
+                <div class="grid-demo">
+                    <ul class="layui-nav layui-bg-cyan">
+                        
+                        <li class="layui-nav-item"><a href="" class="font_large">帮助</a></li>
+                        <li class="layui-nav-item"><a href="javascript:;" class="font_large">友情链接</a>
+                            <dl class="layui-nav-child">
+                                <dd><a href="https://arxiv.org/" target="_blank" >arXiv</a></dd>
+                                <dd><a href="https://www.cnki.net/" target="_blank">中国知网</a></dd>
+                                <dd><a href="https://scholar.google.com/" target="_blank" >谷歌学术搜索</a></dd>
+                                <dd><a href="https://translate.google.cn/" target="_blank">谷歌翻译</a></dd>
+                            </dl>
+                        </li>
+
+                        <li class="layui-nav-item">
+                        <a href="javascript:;" class="font_large">实用工具</a>
+                        <dl class="layui-nav-child">
+                            <dd><a href="/xiaogongju/" >PDF转WORD</a></dd>
+                            
+                            <dd><a href="/xiaogongju/" >PPT生成</a></dd>
+                        </dl>
+                        </li>
+                        <li class="layui-nav-item"><a href="https://github.com/jamie-ji" class="font_large">联系我们</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="layui-col-xs2">
+                <div class="grid-demo">
+                    <ul class="layui-nav layui-bg-cyan" >
+                        {% if request.session.is_login %}
+                        <li class="layui-nav-item">
+                            <a><img src="//t.cn/RCzsdCq" class="layui-nav-img">{{request.session.user_name}}</a>
+                            <dl class="layui-nav-child">
+                              <dd><a href="/self_index">个人博物馆</a></dd>
+                              <dd><a href="/summary">摘要生成</a></dd>
+                              <dd><a href="/logout/">退出登录</a></dd>
+                            </dl>
+                          </li>
+
+                        {% else %}
+                        <li class="layui-nav-item">
+                        <a href="/register" class="font_large">注册</a>
+                        </li>
+                        <li class="layui-nav-item">
+                        <a href="/login" class="font_large">登录</a>
+                        </li>
+                        {% endif %}
+                        
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+   
+    <div class="body">
+        <div class="body_first">
+            <div class="body_banner">
+                <img src="{% static 'imgages/banner.png' %}" alt="banner">
+            </div>
+            <div class="body_word">
+
+                The final solution of article management , so you can change the future
+            </div>
+            <div class="body_words">
+                搜索超过200万篇以上的英文文献
+            </div>
+            <div class="body_search">
+                <form class="layui-form" action="/search/" method="get" lay-filter="example">
+
+                    <div class="layui-input-inline">
+                        <input type="text" name="search" required lay-verify="required" placeholder="搜索文章" autocomplete="off" class="layui-input" style="width: 450px;height:40px;float: left;"> 
+                        <button type="submit" class="layui-btn" style="float: right;height:40px;width:70px">搜索</button>
+                    </div>
+                </form>
+            </div>
+            <div class="body_recommand">
+                热搜：<a href="/search/?search=Transformers" class="body_recommand_font">Transformers</a> 
+                <a href="/search/?search=yolo" class="body_recommand_font">YOLO</a>
+                <a href="/search/?search=Covid-19" class="body_recommand_font">Covid-19</a>                
+            </div>
+            <div class="body_signin">
+                <a href="/register"><button type="button" class="layui-btn layui-btn-normal" style="height: 40px;width:200px;color:white;font-weight:bolder;">免 费 注 册</button></a>
+            </div>
+        </div>
+        
+        <div class="body_second">
+            <div class="body_second_words">
+                <p style="font-family: cursive;">建立专属的数字博物馆<br></p>
+                <p style="font-family: 'Times New Roman', Times, serif;font-size: larger;">Build private digital museum</p>
+                <br><br>
+                <p style="font-size: medium;font-family: SimSun;">只需单击几下即可直接从浏览器添加论文或从桌面导入任何文档</p>
+                <br>
+                <p style="font-size: medium;font-family: SimSun;">让杂乱无序的文献尽在您的掌控</p>
+                <br>
+                <a style="font-size: large;font-family: SimSun;text-decoration:underline;" href="/self_index/" >现在就开始 -></a>
+
+            </div>
+            <div>
+                <img class="body_second_picture"  src="{% static 'imgages/bodypic1.jpg' %}" alt="pic1">
+            </div>        
+        </div>
+
+        <div class="body_second">
+            <div class="body_second_words">
+                <p style="font-family: cursive;">搭载强大的摘要算法<br></p>
+                <p style="font-family: 'Times New Roman', Times, serif;font-size: larger;">Take advantage of brilliant AI</p>
+                <br><br>
+                <p style="font-size: medium;font-family: SimSun;">强大的算法让您拨茧抽丝，一目了然</p>
+                <br>
+                <p style="font-size: medium;font-family: SimSun;">忘掉冗余的信息吧，享受精简、准确的摘要</p>
+                <br>
+                <a style="font-size: large;font-family: SimSun;text-decoration:underline;" href="/summary/" >现在就开始 -></a>
+            </div>
+            <div>
+                <img class="body_second_picture"  src="{% static 'imgages/bodypic2.jpg' %}" alt="pic2">
+            </div>        
+        </div>
+        <div class="body_second">
+            <div class="body_second_words">
+                <p style="font-family: cursive;">实用小工具助您成功<br></p>
+                <p style="font-family: 'Times New Roman', Times, serif;font-size: larger;">Provide awesome useful tools</p>
+                <br><br>
+                <p style="font-size: medium;font-family: SimSun;">前所未有的文献阅读体验</p>
+                <br>
+                <p style="font-size: medium;font-family: SimSun;">横跨PDF、txt、markdown、doc、ppt</p>
+                <br>
+                <a style="font-size: large;font-family: SimSun;text-decoration:underline;" href="/xiaogongju/" >现在就开始 -></a>
+            </div>
+            <div>
+                <img class="body_second_picture"  src="{% static 'imgages/bodypic3.jpg' %}" alt="pic3">
+            </div>        
+        </div>
+    </div>
+    <div class="foot">
+        <hr class="hr-twill-colorful">
+        <div class="layui-row">
+            <div class="layui-col-xs2">  &nbsp
+            </div>
+            <div class="layui-col-xs4" style="padding-top: 50px;">
+                <ul>
+                    <li style="font-size: larger;font-weight: bolder;">产品介绍</li>
+                    <li><br></li>
+                    <li><a href="">摘要算法</a></li>
+                    <li><a href="">实用工具</a></li>
+                </ul>
+                
+            </div>
+            <div class="layui-col-xs3" style="padding-top: 50px;">
+                <ul>
+                    <li style="font-size: larger;font-weight: bolder;">文档</li>
+                    <li><br></li>
+                    <li><a href="">文档1</a></li>
+                    <li><a href="">文档2</a></li>
+                </ul>
+                
+            </div>
+            <div class="layui-col-xs2" style="padding-top: 50px;">
+                <ul>
+                    <li style="font-size: larger;font-weight: bolder;">联系我们</li>
+                    <li><br></li>
+                    <li><a href="https://github.com/jamie-ji">Github</a></li>
+                    <li><a href="https://blog.csdn.net/JamieJi?spm=1000.2115.3001.5343">CSDN</a></li>
+                </ul>
+                
+            </div>
+            <div class="layui-col-xs2">
+                &nbsp
+            </div>
+
+        </div>
+    </div>
+
+    <div class="ground">
+        <img src="{% static 'imgages/logo.jpg' %}" class="ground_pic">
+    
+        <p class="ground_word">Copyright © 2022  All rights reserved.<br><br>E-mail:jamieji0615@gmail.com</p>
+
+    </div>    
+
+    
+    
+
+    <script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.js"></script>
+    <script src="https://cdn.bootcss.com/popper.js/1.15.0/umd/popper.js"></script>
+    <script src="https://cdn.bootcss.com/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+<script src="{% static 'layui/layui.js' %}"></script>
+
+</script>
+</body>
+</html>

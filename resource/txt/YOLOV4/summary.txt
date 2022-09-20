@@ -1,0 +1,71 @@
+				标题为:yolov4: optimal speed and accuracy of object detection
+
+一作为:Alexey Bochkovskiy
+abstract：There are a huge number of features which are said toimprove Convolutional Neural Network (CNN) accuracy.Practical testing of combinations of such features on largedatasets, and theoretical justiﬁcation of the result, is re-quired. Some features operate on certain models exclusivelyand for certain problems exclusively, or only for small-scaledatasets; while some features, such as batch-normalizationand residual-connections, are applicable to the majority ofmodels, tasks, and datasets. We assume that such universalfeatures include Weighted-Residual-Connections (WRC),Cross-Stage-Partial-connections (CSP), Cross mini-BatchNormalization (CmBN), Self-adversarial-training (SAT)and Mish-activation. We use new features: WRC, CSP,CmBN, SAT, Mish activation, Mosaic data augmentation,CmBN, DropBlock regularization, and CIoU loss, and com-bine some of them to achieve state-of-the-art results: 43.5%AP (65.7% AP50 ) for the MS COCO dataset at a real-time speed of ∼65 FPS on Tesla V100. Source code is at
+
+摘要：有大量的特征被认为可以提高卷积神经网络(CNN)的准确性。需要在大数据集上对这些特征的组合进行实际测试，并对结果进行理论论证。有些特性专门针对特定的模型和特定的问题，或者只针对小规模数据集;而一些特性，如批处理规格化和剩余连接，适用于大多数模型、任务和数据集。我们假设这些通用特征包括加权剩余连接(WRC)、跨阶段部分连接(CSP)、跨小批量归一化(CmBN)、自对抗训练(SAT)和mi -激活。我们使用新特性:拉力,CSP, CmBN,坐,米什激活,马赛克数据增加,CmBN, DropBlock正规化,意识丧失,和其中的一些生活,以达到最先进的结果:43.5%的美联社(65.7% AP50)女士可可数据集的实时速度∼65 FPS特斯拉V100。源代码在
+
+
+ darknet.org. The Darknet is a network of dark web sites. It allows people to communicate without the use of the internet. The darknet is open source and can be accessed by anyone. It can also be accessed via the internet by anyone with a computer.
+1. Introduction
+
+Most CNN-based object detectors are largely applicable only for recommendation systems. Real-time object detector operation on conven-gian Graphics Processing Units (GPU) allows their mass usage at an affordable price. For example, anyone who uses a conventional GPU to train and test can achieve real-time, high quality, and convincing ob-                 ject detection results.
+1. We develope an efﬁcient and powerful object detection
+
+The new system uses a 1080 Ti or 2080 Ti GPU to train a super fast and accurate object detector. It makes everyone can use a 1080Ti or. 2080Ti GPU to training a superfast and accurate. model. The new system is available now for pre-order on the company's website.
+2. We verify the inﬂuence of state-of-the-art Bag-of-
+
+Freebies and Bag-of-Specials methods of object detec- tion during the detector training. Freebies and bags of special items to be given out after training. Bag of Specials includes a bag of special objects to be handed out after the training. The bag of items includes a special bag of objects for the detector.
+3. We modify state-of-the-art methods and make them
+
+. More effecient and suitable for single GPU training including CBN [89], PAN [49], SAM [85], etc. More efficient and more efficient than single GPU. More effective than single-GPU training for many other tasks. More powerful than single GPU training.
+2.1. Object detection models
+
+A modern detector is usually composed of two parts: a backbone which is pre-trained on ImageNet and a head which is used to predict classes and bounding boxes. For those detectors running on GPU platform, their backbone could be VGG [68], ResNet [26], ResNeXt [86] or DenseNet [30]. For those detector running on CPU plat-                 form, their spine could be SqueezeNet [31], MobileNet [28, 66, 27, 74], or ShufﬂeNet [97, 53].
+2.2. Bag of freebies
+
+Data augmentation is used to increase the variability of the input images. Photometric distortions and geometric distortions are two commonly used data augmentation methods. Some researchers put emphasis on sim- ulating object occlusion issues. Hard negative example mining or online hard example mining is often used in two-stage object de-ipient tector.
+2.3. Bag of specials
+
+ plugin modules are for enhancing certain attributes in a model. Post-processing is a method for screening model prediction results. Common modules that can be used to enhance recep-                 tive ﬁeld are SPP [25], ASPP [5], and RFB [47]
+3. Methodology
+
+The basic aim is fast operating speed of neural network in production systems. We present two options of real-time neural networks: CSPResNeXt50 and CSPDarknet53. For VPU - we use grouped-convolution, but we re- frain from using Squeeze-and-excitement (SE) blocks.
+3.1. Selection of architecture
+
+Table 1 shows the information of CSPResNeXt50, CSPDarknet53, and Efﬁ- cientNet B3. Hypothetically speaking, we can assume that a model with a larger receptive ﬁeld size (with a larger number of convolutional layers 3 × 3) should be selected as the backbone.
+3.2. Selection of BoF and BoS
+
+CNN usu- mistakenly ally uses the following: ReLU, leaky-ReLU, parametric-Re LU, ReLU6, SELU, Swish, or Mish. Bounding box regression loss: MSE, IoU, GIoU, CIoU. Data augmentation: CutOut, MixUp, CutMix or DropBlock. Regularization method: DropOut, DropPath or Spatial DropOut.
+3.3. Additional improvements
+
+We introduce a new method of data augmentation Mo-                 saic, and Self-Adversarial Training (SAT) We select optimal hyper-parameters while applying genetic algorithms. We modify some exsiting methods to make our design suitble for efﬁcient training.
+4. Experiments
+
+We test the accuracy of the classiﬁer on ImageNet and MS COCO datasets. We also test the inﬂuence of different training improve-                 ment techniques on accuracy. We conclude that the training techniques used to train ImageNet are more accurate.
+4.1. Experimental setup
+
+In ImageNet image classiﬁcation experiments, the de-                 fault hyper-parameters are as follows: the training steps is 8,000,000; the batch size and the mini-batch size are 128 and 32, respectively. In the BoF experiments, we verify MixUp, CutMix, Mosaic, and label smoothing regularization methods.
+3.4. YOLOv4
+
+YOLOv4 consists of: Backbone: CSPDarknet53 [81] Neck: SPP [25], PAN [49] and DIoU-NMS [63] Head: YOLO v3 [63) YOLo v4 uses: CutMix, DropBlock regularization, Mosaic data augmentation, Class label smoothing.
+4.2. Inﬂuence of different features on Classiﬁer
+
+CNN.com will feature iReporter photos in a weekly Travel Snapshots gallery. Please submit your best shots of the U.S. for next week. Visit CNN.com/Travel next Wednesday for a new gallery of snapshots. Visit the Unexpected Travel gallery next Wednesday to see which U.N. training centers are in the works.
+4.3. Inﬂuence of different features on Detector
+
+We study the inﬂuence of different features on                 classiﬁer training. These include bilateral blurring, MixUp, CutMix and Mosaic, as shown in Fugure 7. In addition we use Mish activation as a complementary option. Further study concerns the in ﬁrst 10% of time periods on the detector training accuracy.
+4.4. Inﬂuence of different backbones and pre-
+
+The CSPDarknet53 model shows a greater ability to increase the detector accuracy owing to various improvements. CSPResNeXt50 is more suitable for the detector than CSP darknet53. The classiﬁcation accuracy of the CSP Darknet53 is higher than that of CSP ResNeXT50.
+4.5. Inﬂuence of different mini-batch size on Detec-
+
+We analyze the results obtained with models trained with different mini-batch sizes, and the results are shown in Table 7. After adding BoF and BoS training strategies, we found that after adding Bof andBoS, the sizeof mini- batch size has almost no effect on the detector’s per-                 formance. This result shows that after the introduction of BoF, it is no longer necessary to use expensive expensive GPUs for training.
+5. Results
+
+YOLOv4 is located on the Pareto optimality curve and are superior to the fastest and most accurate detectors in terms of both speed and accuracy. We operate YOLOV4 on commonly adopted GPUs of Maxwell, Pascal, and Volta architectures, and compare them with other state-of-the-art methods.
+6. Conclusions
+
+The detector is faster (FPS) and more accurate (MS COCO AP50...95 and AP50 ) than all available alternative detectors. It can be trained and used on a conventional GPU with 8-16 GB-VRAM. The original concept of one-stage anchor-based detectors has proven its viability. We have veriﬁed a large number of features.
+7. 确认
+YOLOv3网络基于基于a检测的单次检测器。作者希望感谢Glenn Jocher，感谢他提出了Mosaic数据增强的想法，以及使用遗传算法选择超参数。

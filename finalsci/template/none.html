@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+{% load static %}
+<head>
+	<meta charset="UTF-8">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" >
+	
+    <title>FinalSci你的最后一个文献管理系统</title>
+	<link rel="stylesheet" href="{% static 'layui/css/layui.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/self_index.css' %}">
+</head>
+<body>
+    <div class="header">
+
+        <div class="layui-row">
+            <div class="layui-col-xs2">
+                <a href="http://127.0.0.1:8000/"><img src="{% static 'imgages/logo.jpg' %}" class="logo"></a>
+            </div>
+            <div class="layui-col-xs8">
+                <div class="grid-demo">
+                    <ul class="layui-nav layui-bg-cyan">
+                        
+                        <li class="layui-nav-item"><a href="" class="font_large">帮助</a></li>
+                        <li class="layui-nav-item"><a href="javascript:;" class="font_large">友情链接</a>
+                            <dl class="layui-nav-child">
+                                <dd><a href="https://arxiv.org/" target="_blank" >arXiv</a></dd>
+                                <dd><a href="https://www.cnki.net/" target="_blank">中国知网</a></dd>
+                                <dd><a href="https://scholar.google.com/" target="_blank" >谷歌学术搜索</a></dd>
+                                <dd><a href="https://translate.google.cn/" target="_blank">谷歌翻译</a></dd>
+                            </dl>
+                        </li>
+
+                        <li class="layui-nav-item">
+                        <a href="javascript:;" class="font_large">实用工具</a>
+                        <dl class="layui-nav-child">
+                            <dd><a href="/PDFprocess" >PDF转WORD</a></dd>
+                            
+                            <dd><a href="/PDFprocess" >PPT生成</a></dd>
+                        </dl>
+                        </li>
+                        <li class="layui-nav-item"><a href="" class="font_large">联系我们</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="layui-col-xs2">
+                <div class="grid-demo">
+                    <ul class="layui-nav layui-bg-cyan" >
+                        {% if request.session.is_login %}
+                        <li class="layui-nav-item">
+                            <a><img src="//t.cn/RCzsdCq" class="layui-nav-img">{{request.session.user_name}}</a>
+                            <dl class="layui-nav-child">
+                              <dd><a href="javascript:;">个人博物馆</a></dd>
+                              <dd><a href="javascript:;">摘要生成</a></dd>
+                              <dd><a href="logout/">退出登录</a></dd>
+                            </dl>
+                          </li>
+
+                        {% else %}
+                        <li class="layui-nav-item">
+                        <a href="/register" class="font_large">注册</a>
+                        </li>
+                        <li class="layui-nav-item">
+                        <a href="/login" class="font_large">登录</a>
+                        </li>
+                        {% endif %}
+                        
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    
+
+<script src="{% static 'layui/layui.js' %}"></script>
+</body>
+</html>

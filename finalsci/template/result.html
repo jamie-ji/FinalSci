@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html>
+{% load static %}
+<head>
+	<meta charset="UTF-8">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" >
+	
+    <title>搜索结果</title>
+	<link rel="stylesheet" href="{% static 'layui/css/layui.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/result.css' %}">
+</head>
+<body>
+    <div class="header">
+
+        <div class="layui-row">
+            <div class="layui-col-xs2">
+                <a href="http://127.0.0.1:8000/"><img src="{% static 'imgages/logo.jpg' %}" class="logo"></a>
+            </div>
+            <div class="layui-col-xs8">
+                <div class="grid-demo">
+                    <ul class="layui-nav layui-bg-cyan">
+                        
+                        <li class="layui-nav-item"><a href="" class="font_large">帮助</a></li>
+                        <li class="layui-nav-item"><a href="javascript:;" class="font_large">友情链接</a>
+                            <dl class="layui-nav-child">
+                                <dd><a href="https://arxiv.org/" target="_blank" >arXiv</a></dd>
+                                <dd><a href="https://www.cnki.net/" target="_blank">中国知网</a></dd>
+                                <dd><a href="https://scholar.google.com/" target="_blank" >谷歌学术搜索</a></dd>
+                                <dd><a href="https://translate.google.cn/" target="_blank">谷歌翻译</a></dd>
+                            </dl>
+                        </li>
+
+                        <li class="layui-nav-item">
+                        <a href="javascript:;" class="font_large">实用工具</a>
+                        <dl class="layui-nav-child">
+                            <dd><a href="/xiaogongju/" >PDF转WORD</a></dd>
+                            
+                            <dd><a href="/xiaogongju/" >PPT生成</a></dd>
+                        </dl>
+                        </li>
+                        <li class="layui-nav-item"><a href="https://github.com/jamie-ji" class="font_large">联系我们</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="layui-col-xs2">
+                <div class="grid-demo">
+                    <ul class="layui-nav layui-bg-cyan" >
+                        {% if request.session.is_login %}
+                        <li class="layui-nav-item">
+                            <a><img src="//t.cn/RCzsdCq" class="layui-nav-img">{{request.session.user_name}}</a>
+                            <dl class="layui-nav-child">
+                              <dd><a href="/self_index">个人博物馆</a></dd>
+                              <dd><a href="/summary">摘要生成</a></dd>
+                              <dd><a href="logout/">退出登录</a></dd>
+                            </dl>
+                          </li>
+
+                        {% else %}
+                        <li class="layui-nav-item">
+                        <a href="/register" class="font_large">注册</a>
+                        </li>
+                        <li class="layui-nav-item">
+                        <a href="/login" class="font_large">登录</a>
+                        </li>
+                        {% endif %}
+                        
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="neck_research">
+        <form class="layui-form" action="/search/" method="get" lay-filter="example">
+            <div class="layui-input-inline">
+                <input type="text" name="search" required lay-verify="required" placeholder='{{result}}' autocomplete="off" class="layui-input" style="width: 450px;height:40px;float: left;"> 
+                <button type="submit" class="layui-btn" style="float: right;height:40px;width:70px">搜索</button>
+            </div>
+        </form>
+    </div>
+    <div class="body">
+        <div class="layui-row">
+            <div class="layui-col-xs3" style="padding-left: 40px;padding-top: 20px;">
+                <div style="padding-left: 40px;">
+                    <!-- <p>查询到的结果数：{{numofresult}}</p> -->
+                    查询到的结果数：{{titlenum}}
+                </div>
+                <hr>
+                <div class="catalog_word">
+                    筛选
+                </div>
+                    {% if sort == 'relevence' %}
+                        <p style="padding-top:20px;font-size: medium; font-weight: bold;">当前排序方式：相关度</p>   <p style="padding-top:10px;font-size: medium; font-weight: bold;">年份选择：{{year}}</p>
+                        {% elif sort == 'publishdate' %}
+                        <p style="padding-top:20px ;font-size: medium; font-weight: bold;">当前排序方式：发表日期</p>  <p style="padding-top:10px;font-size: medium; font-weight: bold;"> 年份选择：{{year}}</p>
+                        {% else %}
+                        <p style="padding-top:20px ;font-size: medium; font-weight: bold;">当前排序方式：更新日期 </p> <p style="padding-top:10px;font-size: medium; font-weight: bold;"> 年份选择：{{year}}</p>
+                        {% endif %}
+
+                    
+                <div class="catalog_choice">
+                    <form class="layui-form" aciton="/search/" method="post">
+                        {% csrf_token %} 
+                        <div class="layui-form-item" pane="">
+                            <label class="layui-form-label" style="font-size: large;">年份</label>
+                            <div class="layui-input-block" style="zoom: 120%;">
+                            <ul>
+                              <li><input type="checkbox" name="year" value="2022" lay-skin="primary" title="2022" ></li>
+                              <li><input type="checkbox" name="year" value="2021" lay-skin="primary" title="2021" ></li>
+                              <li><input type="checkbox" name="year" value="2020" lay-skin="primary" title="2020" ></li>
+                              <li><input type="checkbox" name="year" value="2019" lay-skin="primary" title="2019" ></li>
+                              <li><input type="checkbox" name="year" value="2018" lay-skin="primary" title="2018" ></li>
+                            </ul>
+                            </div>
+                          </div>
+                          <div>
+                                <div class="layui-form-item" pane="">
+                                    <label class="layui-form-label" style="font-size: large;">排序方式</label>
+                                    <div class="layui-input-block" style="zoom: 120%;">
+                                      {% if sort == 'relevence' %}
+                                      <li><input type="radio"  name="sort" value="relevence" lay-skin="primary" title="相关度" checked>
+                                      {% else %}
+                                      <li><input type="radio"  name="sort" value="relevence" lay-skin="primary" title="相关度">
+                                      {% endif %}
+                                      {% if sort == 'publishdate' %}
+                                      <li><input type="radio"  name="sort" value="publishdate" lay-skin="primary" title="发表日期" checked>
+                                      {% else %}
+                                      <li><input type="radio"  name="sort" value="publishdate" lay-skin="primary" title="发表日期" >
+                                        {% endif %}
+
+                                        {% if sort == 'update' %}
+                                        <li><input type="radio"  name="sort" value="update" lay-skin="primary" title="最近更新" checked>
+                                            {% else %}  
+                                      <li><input type="radio"  name="sort" value="update" lay-skin="primary" title="最近更新" >
+                                        {% endif %}
+                                        
+                                    </div>
+                                </div>   
+                        </div> 
+                        <div class="renew_button">
+                            <button type="submit" class="layui-btn" >   刷  新  </button>
+                        </div>
+                        
+                    </form>
+                </div>
+            </div>
+
+            <div class="layui-col-xs6" style="padding-left: 100px;">  
+                <br>
+                <div class="body_body">
+                    <!-- 面板，动态生成 -->
+                        <div class="layui-row layui-col-space15">
+                                <div id="laypage" style="zoom: 120%;"></div>
+                                <ul id="city_list"></ul>
+                        </div> 
+                </div>
+
+            </div>
+
+
+            <div class="layui-col-xs3">
+
+            </div>
+
+        </div>
+    </div>
+
+    <div class="foot">
+        <hr class="hr-twill-colorful">
+        <div class="layui-row">
+            <div class="layui-col-xs2">  &nbsp
+            </div>
+            <div class="layui-col-xs4" style="padding-top: 50px;">
+                <ul>
+                    <li style="font-size: larger;font-weight: bolder;">产品介绍</li>
+                    <li><br></li>
+                    <li><a href="">摘要算法</a></li>
+                    <li><a href="">实用工具</a></li>
+                </ul>
+                
+            </div>
+            <div class="layui-col-xs3" style="padding-top: 50px;">
+                <ul>
+                    <li style="font-size: larger;font-weight: bolder;">文档</li>
+                    <li><br></li>
+                    <li><a href="">文档1</a></li>
+                    <li><a href="">文档2</a></li>
+                </ul>
+                
+            </div>
+            <div class="layui-col-xs2" style="padding-top: 50px;">
+                <ul>
+                    <li style="font-size: larger;font-weight: bolder;">联系我们</li>
+                    <li><br></li>
+                    <li><a href="https://github.com/jamie-ji">Github</a></li>
+                    <li><a href="https://blog.csdn.net/JamieJi?spm=1000.2115.3001.5343">CSDN</a></li>
+                </ul>
+                
+            </div>
+            <div class="layui-col-xs2">
+                &nbsp
+            </div>
+
+        </div>
+    </div>
+    <div class="ground">
+        <img src="{% static 'imgages/logo.jpg' %}" class="ground_pic">
+    
+        <p class="ground_word">Copyright © 2022  All rights reserved.<br><br>E-mail:jamieji0615@gmail.com</p>
+
+    </div>    
+
+<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.js"></script>
+<script src="https://cdn.bootcss.com/popper.js/1.15.0/umd/popper.js"></script>
+<script src="https://cdn.bootcss.com/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+<script src="{% static 'layui/layui.js' %}"></script>
+<!-- 面板动态生成 -->
+<script type="text/javascript">
+    
+   layui.use(['laypage', 'layer'], function () {
+        let laypage = layui.laypage;
+        	
+        var data = {{ list_title |safe }};
+        
+        var author={{list_author|safe}};
+        var chinese_title={{list_chinese_title|safe}};
+        var abstarct={{list_abstract|safe}};
+
+        var published={{list_published|safe}};
+
+        var url={{list_url|safe}};
+
+        var chinese_abstract={{list_chinese_abstract|safe}};
+
+        var pdf_url={{list_pdfurl|safe}};
+
+        
+        laypage.render({
+            elem: 'laypage', // 存放分页控件的容器
+            count: {{titlenum|safe}}, //数据总数。一般通过服务端得到
+            limit: 10,//每页显示的条数。laypage将会借助 count 和 limit 计算出分页数。
+            theme: '#009688', //自定义主题
+            jump: function (obj) {//模拟渲染
+                document.getElementById('city_list').innerHTML = function () {
+                    let arr = [];
+                    let thisData = data.concat().splice(obj.curr * obj.limit - obj.limit, obj.limit);
+                    // let authors = author.concat().splice(obj.curr * obj.limit - obj.limit, obj.limit);
+                    i=obj.curr*obj.limit-obj.limit;
+                    layui.each(thisData, function (index, item,) {
+                        arr.push('<div class="layui-panel content">');
+                        arr.push('<div style="height:270px;font-size:larger;font-weight:bold;margin-top:20px;margin-left:20px;margin-right:20px"><p id="text">'+ data[i]+'</p>');
+                        //中文标题
+                        arr.push('<p style="font-size:medium;font-weight:bold">'+chinese_title[i]+'</p>')    
+                        arr.push('<p style="margin-top:10px;font-size:small;font-weight:normal">'+'第一作者：'+author[i]+'</p>')
+                        //超字数的英文摘要
+                        arr.push('<p class="line-limit-length" style="margin-top:10px;font-size:small;font-weight:normal">'+'简介：'+abstarct[i]+'</p>')
+                        //中文摘要
+                        arr.push('<p class="line-limit-length" style="margin-top:10px;font-size:small;font-weight:normal">'+'简介：'+chinese_abstract[i]+'</p>')
+                        arr.push('<p style="margin-top:10px;font-size:small;font-weight:bold">'+'发表时间：'+published[i]+'</p>')
+                        arr.push('</div>')
+                        arr.push('<a href="'+url[i]+'" target="blank" style="font-size:small;font-weight:normal"><button  onclick="read('+i+')" class="layui-btn" style="margin-left:20px;margin-bottom:30px"><i class="layui-icon"></i>'+'原文链接</button></a>')
+                        // 按钮
+                        arr.push('<button data-method="offset" data-num="'+i+'" data-type="r" class="layui-btn btn" style="margin-left:50px;margin-bottom:30px"><i class="layui-icon"></i>查看更多</button>');
+                        //下载按钮待做
+                        arr.push('<a href="'+pdf_url[i]+'" target="blank"><button onclick="download('+i+')" class="layui-btn" style="margin-left:50px;margin-bottom:30px"><i class="layui-icon"></i>PDF下载</button></a>');
+                        //收藏(需登录)
+                        
+                        arr.push('<button onclick="set('+i+')"  class="layui-btn" name="'+i+'"  style="margin-left:50px;margin-bottom:30px"><i class="layui-icon"></i>登陆收藏</button>');
+
+                        arr.push('</div><br>')
+                        i++;
+                    });
+                    return arr.join('');
+                }();
+            }
+        });
+
+    
+
+    });
+</script>
+<!-- 弹出页 -->
+<script>
+    
+    layui.use('layer', function(){ //独立版的layer无需执行这一句
+  var $ = layui.jquery, layer = layui.layer; //独立版的layer无需执行这一句
+
+  //触发事件
+  var active = {
+    offset: function(othis){
+      var type = othis.data('type'),
+      abstarct={{list_abstract|safe}};
+      
+      chinese_abstract={{list_chinese_abstract|safe}};
+      
+      data = {{ list_title |safe }};
+
+      text = abstarct[othis.data('num')];
+      author={{list_author|safe}};
+      
+      layer.open({
+        type: 1,
+        id: 'layerDemo'+type,
+        title:'<p style="font-weight:bold;font-size:larger">'+data[othis.data('num')]+'</p>',
+        content: '<div style="padding-top:20px;padding-left:10px;padding-right:10px;">'+
+                        '<p style="font-weight:bolder;">第一作者：'+author[othis.data('num')]+'</p><br>'+
+                        '<p style="font-weight:bolder;">Abstarct：</p>'
+                            +text +
+                        '<br><br>'+
+
+                        '<p style="font-weight:bolder;">简介：</p>'
+                            +chinese_abstract[othis.data('num')]+
+                        '<p style="font-weight:bolder;">提纲：请登陆后上传后查看</p>'+
+                        //该功能请登录后使用！！！！
+                        //判断登陆与否，再决定使用权
+            
+                '</div>',
+        
+        area:['380px', '700px'],
+        zIndex: layer.zIndex, //重点1
+        success: function(layero){
+            layer.setTop(layero); //重点2
+        },
+        offset:'r',
+        btn: '关闭全部',
+        btnAlign: 'c' ,
+        shade: 0 ,
+        yes: function(){
+          layer.closeAll();
+        },
+        
+      });
+    }
+  };
+//   按钮绑定
+  $('#layerDemo .layui-btn').on('click', function(){
+    var othis = $(this), method = othis.data('method');
+    active[method] ? active[method].call(this, othis) : '';
+  });
+
+  $(document).on('click','.btn',function (e) {
+    var othis = $(this), method = othis.data('method');
+    active[method] ? active[method].call(this, othis) : '';
+        });
+
+   
+});
+
+</script>
+
+<script>
+
+function set(id){
+
+    Date.prototype.Format = function (fmt) { // author: meizz
+    var o = {
+        "M+": this.getMonth() + 1, // 月份
+        "d+": this.getDate(), // 日
+        "h+": this.getHours(), // 小时
+        "m+": this.getMinutes(), // 分
+        "s+": this.getSeconds(), // 秒
+        "q+": Math.floor((this.getMonth() + 3) / 3), // 季度
+        "S": this.getMilliseconds() // 毫秒
+    };
+    if (/(y+)/.test(fmt))
+        fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
+    for (var k in o)
+        if (new RegExp("(" + k + ")").test(fmt)) fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+            return fmt;
+}
+
+
+var time2 = new Date().Format("yyyy-MM-dd hh:mm:ss"); 
+
+
+data = {{ list_title |safe }};
+author  ={{list_author|safe}};
+publishdate={{list_published|safe}};
+source="online"
+address={{list_url|safe}};
+stardate=time2
+
+
+alert("收藏成功！请前往个人博物馆查看")
+
+$.ajax({
+            url: "/allstar/",
+            type: "POST",
+            data : {title:data[id],authors:author[id],published1:publishdate[id],source1:source,address1:address[id],stardate1:stardate},
+            
+        });
+        
+
+
+}
+</script>
+
+<script>
+function download(id){
+Date.prototype.Format = function (fmt) { // author: meizz
+    var o = {
+        "M+": this.getMonth() + 1, // 月份
+        "d+": this.getDate(), // 日
+        "h+": this.getHours(), // 小时
+        "m+": this.getMinutes(), // 分
+        "s+": this.getSeconds(), // 秒
+        "q+": Math.floor((this.getMonth() + 3) / 3), // 季度
+        "S": this.getMilliseconds() // 毫秒
+    };
+    if (/(y+)/.test(fmt))
+        fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
+    for (var k in o)
+        if (new RegExp("(" + k + ")").test(fmt)) fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+            return fmt;
+}
+
+
+    var time2 = new Date().Format("yyyy-MM-dd hh:mm:ss"); 
+    data = {{ list_title |safe }};
+    author  ={{list_author|safe}};
+    publishdate={{list_published|safe}};
+    source="online"
+    address={{list_url|safe}};
+    stardate=time2
+    
+    alert("已加入到下载清单中！")
+
+    $.ajax({
+            url: "/latestdownload/",
+            type: "POST",
+            data : {title:data[id],authors:author[id],published1:publishdate[id],source1:source,address1:address[id],stardate1:stardate},
+            
+        });
+        
+
+
+}
+
+
+</script>
+<script>
+    function read(id){
+Date.prototype.Format = function (fmt) { // author: meizz
+    var o = {
+        "M+": this.getMonth() + 1, // 月份
+        "d+": this.getDate(), // 日
+        "h+": this.getHours(), // 小时
+        "m+": this.getMinutes(), // 分
+        "s+": this.getSeconds(), // 秒
+        "q+": Math.floor((this.getMonth() + 3) / 3), // 季度
+        "S": this.getMilliseconds() // 毫秒
+    };
+    if (/(y+)/.test(fmt))
+        fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
+    for (var k in o)
+        if (new RegExp("(" + k + ")").test(fmt)) fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+            return fmt;
+}
+
+
+    var time2 = new Date().Format("yyyy-MM-dd hh:mm:ss"); 
+    data = {{ list_title |safe }};
+    author  ={{list_author|safe}};
+    publishdate={{list_published|safe}};
+    source="online"
+    address={{list_url|safe}};
+    stardate=time2
+    
+    alert("已加入阅读清单！")
+
+    $.ajax({
+            url: "/latestread/",
+            type: "POST",
+            data : {title:data[id],authors:author[id],published1:publishdate[id],source1:source,address1:address[id],stardate1:stardate},
+            
+        });
+        
+
+
+}
+
+</script>
+
+
+</body>
+</html>

@@ -1,0 +1,112 @@
+.header{
+    background-color: #2f4056;
+    height: 70px;
+}
+.logo{
+    width:100%;
+    height:100%;
+    transform: scale(1);
+}
+.font_large{
+    font-size: large;
+}
+.body{
+    width: 100%;
+    height: 2320px;
+}
+.body_first{
+    width: 100%;
+    height: 580px;
+    background-image: url('background.jpg') ;
+    background-size:cover;
+}
+.body_banner{
+    text-align: center;
+    width: 100%;
+    transform: scale(0.85);
+}
+.body_word{
+    text-align: center;
+    font-size: 30px;
+    color: antiquewhite;
+    padding-top: 10px;
+}
+.body_words{
+    text-align: center;
+    font-size: 20px;
+    color: antiquewhite;
+    padding-top: 20px;
+}
+.body_search{
+    padding-top: 30px;
+    text-align: center;
+
+}
+.body_recommand{
+    text-align: center;
+    color: white;
+    font-size: large;
+    padding-top: 10px;
+    
+}
+.body_recommand_font{
+    color: white;
+    font-size: large;
+    text-decoration:underline;
+}
+.body_signin{
+    text-align: center;
+    padding-top: 40px;
+}
+.body_second{
+    width: 100%;
+    height: 580px;
+    
+}
+.body_second_words{
+    padding-left: 280px;
+    padding-top: 150px;
+    font-size: xx-large;
+    
+    float: left;
+    
+}
+.body_second_picture_div{
+    padding-top: 150px;
+    padding-left: 100px;
+}
+.body_second_picture{
+    width: 30%;
+    padding-top: 150px;
+    padding-left: 100px;
+}
+.foot{
+    width: 100%;
+    height: 200px;
+}
+.hr-twill-colorful{
+    border: 0;
+    padding: 3px;
+    background: linear-gradient(135deg, red, orange,green, blue, purple);
+    --mask-image: repeating-linear-gradient(135deg, #000 0px, #000 1px, transparent 1px, transparent 6px);
+    -webkit-mask-image: var(--mask-image);
+    mask-image: var(--mask-image);
+}
+.ground{
+    width: 100%;
+    height: 150px;
+    
+    background-color: #2f4056;
+}
+.ground_pic{
+    width: 15%;
+    padding-top: 40px;
+    padding-left: 400px;
+    float: left;
+}
+.ground_word{
+    font-size: medium;
+    padding-top: 50px;
+    padding-left: 700px;
+    color: white;
+}

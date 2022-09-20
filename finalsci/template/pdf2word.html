@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+{% load static %}
+<head>
+	<meta charset="UTF-8">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" >
+	
+    <title>PDF处理</title>
+	<link rel="stylesheet" href="{% static 'layui/css/layui.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/pdfprocess.css' %}">
+</head>
+<body>
+    <div class="header">
+
+        <div class="layui-row">
+            <div class="layui-col-xs2">
+                <a href="http://127.0.0.1:8000/"><img src="{% static 'imgages/logo.jpg' %}" class="logo"></a>
+            </div>
+            <div class="layui-col-xs8">
+                <div class="grid-demo">
+                    <ul class="layui-nav layui-bg-cyan">
+                        
+                        <li class="layui-nav-item"><a href="" class="font_large">帮助</a></li>
+                        <li class="layui-nav-item"><a href="javascript:;" class="font_large">友情链接</a>
+                            <dl class="layui-nav-child">
+                                <dd><a href="https://arxiv.org/" target="_blank" >arXiv</a></dd>
+                                <dd><a href="https://www.cnki.net/" target="_blank">中国知网</a></dd>
+                                <dd><a href="https://scholar.google.com/" target="_blank" >谷歌学术搜索</a></dd>
+                                <dd><a href="https://translate.google.cn/" target="_blank">谷歌翻译</a></dd>
+                            </dl>
+                        </li>
+
+                        <li class="layui-nav-item">
+                        <a href="javascript:;" class="font_large">实用工具</a>
+                        <dl class="layui-nav-child">
+                            <dd><a href="/xiaogongju/" >PDF转WORD</a></dd>
+                            
+                            <dd><a href="/xiaogongju/" >PPT生成</a></dd>
+                        </dl>
+                        </li>
+                        <li class="layui-nav-item"><a href="https://github.com/jamie-ji" class="font_large">联系我们</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="layui-col-xs2">
+                <div class="grid-demo">
+                    <ul class="layui-nav layui-bg-cyan" >
+                        {% if request.session.is_login %}
+                        <li class="layui-nav-item">
+                            <a><img src="//t.cn/RCzsdCq" class="layui-nav-img">{{request.session.user_name}}</a>
+                            <dl class="layui-nav-child">
+                              <dd><a href="/self_index/">个人博物馆</a></dd>
+                              <dd><a href="/summary/">摘要生成</a></dd>
+                              <dd><a href="logout/">退出登录</a></dd>
+                            </dl>
+                          </li>
+
+                        {% else %}
+                        <li class="layui-nav-item">
+                        <a href="/register" class="font_large">注册</a>
+                        </li>
+                        <li class="layui-nav-item">
+                        <a href="/login" class="font_large">登录</a>
+                        </li>
+                        {% endif %}
+                        
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <form enctype="multipart/form-data"  action="/xiaogongju/" method="post">
+    <div class="body">
+        <div class="left">
+            <label style="font-size: large;font-weight: bold;">PPT生成</label>
+                <br><br>
+                <textarea rows="31" cols="70" name="input" placeholder="输入需要转为PPT的文字，将先前得到的摘要文字输入进来"   style="white-space: pre-line;"></textarea>
+                <br>
+                <input type="text" name="pptsavepath" placeholder="输入PPT保存文件夹的路径" class="layui-input" style="margin-top: 30px;">
+                <br><input class="layui-btn" style="margin-top: 20px;margin-bottom: 20px;" type="submit" value="开始转换">
+
+        </div>
+        <div class="right">
+            <label style="font-size: large;font-weight: bold;">PDF转为WORD</label>
+            <input type="text" name="pdfpath" placeholder="输入PDF的绝对路径" class="layui-input" style="margin-top: 30px;">
+            <input type="text" name="savepath" placeholder="输入想要保存的路径" class="layui-input" style="margin-top: 30px;">
+            <br>
+            <input class="layui-btn" style="margin-top: 20px;margin-bottom: 20px;" type="submit" value="开始转换">
+
+        </div>
+    </div>
+</form>
+<div class="foot">
+    <hr class="hr-twill-colorful">
+    <div class="layui-row">
+        <div class="layui-col-xs2">  &nbsp
+        </div>
+        <div class="layui-col-xs4" style="padding-top: 50px;">
+            <ul>
+                <li style="font-size: larger;font-weight: bolder;">产品介绍</li>
+                <li><br></li>
+                <li><a href="">摘要算法</a></li>
+                <li><a href="">实用工具</a></li>
+            </ul>
+            
+        </div>
+        <div class="layui-col-xs3" style="padding-top: 50px;">
+            <ul>
+                <li style="font-size: larger;font-weight: bolder;">文档</li>
+                <li><br></li>
+                <li><a href="">文档1</a></li>
+                <li><a href="">文档2</a></li>
+            </ul>
+            
+        </div>
+        <div class="layui-col-xs2" style="padding-top: 50px;">
+            <ul>
+                <li style="font-size: larger;font-weight: bolder;">联系我们</li>
+                <li><br></li>
+                <li><a href="https://github.com/jamie-ji">Github</a></li>
+                <li><a href="https://blog.csdn.net/JamieJi?spm=1000.2115.3001.5343">CSDN</a></li>
+            </ul>
+            
+        </div>
+        <div class="layui-col-xs2">
+            &nbsp
+        </div>
+
+    </div>
+</div>
+
+<div class="ground">
+    <img src="{% static 'imgages/logo.jpg' %}" class="ground_pic">
+
+    <p class="ground_word">Copyright © 2022  All rights reserved.<br><br>E-mail:jamieji0615@gmail.com</p>
+
+</div>    
+
+    
+
+<script src="{% static 'layui/layui.js' %}"></script>
+</body>
+</html>

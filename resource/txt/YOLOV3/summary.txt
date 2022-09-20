@@ -1,0 +1,7 @@
+				标题为:yolov3: an incremental improvement
+
+一作为:Joseph Redmon Ali Farhadi
+abstract：We present some updates to YOLO! We made a bunchof little design changes to make it better. We also trainedthis new network that’s pretty swell. It’s a little bigger thanlast time but more accurate.It’s still fast though, don’tworry. At 320 × 320 YOLOv3 runs in 22 ms at 28.2 mAP,as accurate as SSD but three times faster. When we lookat the old .5 IOU mAP detection metric YOLOv3 is quitegood. It achieves 57.9 AP50 in 51 ms on a Titan X, com-pared to 57.5 AP50 in 198 ms by RetinaNet, similar perfor-mance but 3.8× faster. As always, all the code is online at
+
+摘要：我们为您呈现YOLO的一些更新!我们做了一些小的设计改变，使它更好。我们还训练了这个非常棒的新网络。比上次大一点，但更准确。不过还是很快，别担心。在320 × 320的情况下，YOLOv3在28.2 mAP下运行22毫秒，与SSD一样精确，但速度快了三倍。当我们看旧的。5 IOU mAP检测指标YOLOv3是相当好的。在Titan X上51毫秒就能达到57.9 AP50，而在retina et上198毫秒就能达到57.5 AP50，性能相近，但要快3.8倍。和往常一样，所有代码都在
+

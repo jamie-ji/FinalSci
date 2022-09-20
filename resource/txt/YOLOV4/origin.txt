@@ -1,0 +1,2289 @@
+https://github.com/AlexeyAB/darknet.
+1. Introduction
+The majority of CNN-based object detectors are largely
+applicable only for recommendation systems. For example,
+searching for free parking spaces via urban video cameras
+is executed by slow accurate models, whereas car collision
+warning is related to fast inaccurate models.
+Improving
+the real-time object detector accuracy enables using them
+not only for hint generating recommendation systems, but
+also for stand-alone process management and human input
+reduction. Real-time object detector operation on conven-
+tional Graphics Processing Units (GPU) allows their mass
+usage at an affordable price. The most accurate modern
+neural networks do not operate in real time and require large
+number of GPUs for training with a large mini-batch-size.
+We address such problems through creating a CNN that op-
+erates in real-time on a conventional GPU, and for which
+training requires only one conventional GPU.
+The main goal of this work is designing a fast operating
+speed of an object detector in production systems and opti-
+mization for parallel computations, rather than the low com-
+putation volume theoretical indicator (BFLOP). We hope
+that the designed object can be easily trained and used. For
+example, anyone who uses a conventional GPU to train and
+test can achieve real-time, high quality, and convincing ob-
+ject detection results, as the YOLOv4 results shown in Fig-
+ure 1. Our contributions are summarized as follows:
+1. We develope an efﬁcient and powerful object detection
+model. It makes everyone can use a 1080 Ti or 2080 Ti
+GPU to train a super fast and accurate object detector.
+2. We verify the inﬂuence of state-of-the-art Bag-of-
+Freebies and Bag-of-Specials methods of object detec-
+tion during the detector training.
+3. We modify state-of-the-art methods and make them
+more effecient and suitable for single GPU training,
+including CBN [89], PAN [49], SAM [85], etc.
+
+2. Related work
+2.1. Object detection models
+A modern detector is usually composed of two parts,
+a backbone which is pre-trained on ImageNet and a head
+which is used to predict classes and bounding boxes of ob-
+jects. For those detectors running on GPU platform, their
+backbone could be VGG [68], ResNet [26], ResNeXt [86],
+or DenseNet [30]. For those detectors running on CPU plat-
+form, their backbone could be SqueezeNet [31], MobileNet
+[28, 66, 27, 74], or ShufﬂeNet [97, 53]. As to the head part,
+it is usually categorized into two kinds, i.e., one-stage object
+detector and two-stage object detector. The most represen-
+tative two-stage object detector is the R-CNN [19] series,
+including fast R-CNN [18], faster R-CNN [64], R-FCN [9],
+and Libra R-CNN [58]. It is also possible to make a two-
+stage object detector an anchor-free object detector, such as
+RepPoints [87]. As for one-stage object detector, the most
+representative models are YOLO [61, 62, 63], SSD [50],
+and RetinaNet [45]. In recent years, anchor-free one-stage
+object detectors are developed. The detectors of this sort are
+CenterNet [13], CornerNet [37, 38], FCOS [78], etc. Object
+detectors developed in recent years often insert some lay-
+ers between backbone and head, and these layers are usu-
+ally used to collect feature maps from different stages. We
+can call it the neck of an object detector. Usually, a neck
+is composed of several bottom-up paths and several top-
+down paths. Networks equipped with this mechanism in-
+clude Feature Pyramid Network (FPN) [44], Path Aggrega-
+tion Network (PAN) [49], BiFPN [77], and NAS-FPN [17].
+
+In addition to the above models, some researchers put their
+emphasis on directly building a new backbone (DetNet [43],
+DetNAS [7]) or a new whole model (SpineNet [12], HitDe-
+tector [20]) for object detection.
+To sum up, an ordinary object detector is composed of
+several parts:
+• Input: Image, Patches, Image Pyramid
+• Backbones: VGG16 [68], ResNet-50 [26], SpineNet
+[12], EfﬁcientNet-B0/B7 [75], CSPResNeXt50 [81],
+CSPDarknet53 [81]
+• Neck:
+• Additional blocks: SPP [25], ASPP [5], RFB
+[47], SAM [85]
+• Path-aggregation blocks: FPN [44], PAN [49],
+NAS-FPN [17], Fully-connected FPN, BiFPN
+[77], ASFF [48], SFAM [98]
+• Heads::
+• Dense Prediction (one-stage):
+◦ RPN [64], SSD [50], YOLO [61], RetinaNet
+[45] (anchor based)
+◦ CornerNet [37], CenterNet [13], MatrixNet
+[60], FCOS [78] (anchor free)
+• Sparse Prediction (two-stage):
+◦ Faster R-CNN [64], R-FCN [9], Mask R-
+CNN [23] (anchor based)
+◦ RepPoints [87] (anchor free)
+2.2. Bag of freebies
+Usually, a conventional object detector is trained off-
+line. Therefore, researchers always like to take this advan-
+tage and develop better training methods which can make
+the object detector receive better accuracy without increas-
+ing the inference cost. We call these methods that only
+change the training strategy or only increase the training
+cost as “bag of freebies.” What is often adopted by object
+detection methods and meets the deﬁnition of bag of free-
+bies is data augmentation. The purpose of data augmenta-
+tion is to increase the variability of the input images, so that
+the designed object detection model has higher robustness
+to the images obtained from different environments. For
+examples, photometric distortions and geometric distortions
+are two commonly used data augmentation method and they
+deﬁnitely beneﬁt the object detection task. In dealing with
+photometric distortion, we adjust the brightness, contrast,
+hue, saturation, and noise of an image. For geometric dis-
+tortion, we add random scaling, cropping, ﬂipping, and ro-
+tating.
+The data augmentation methods mentioned above are all
+pixel-wise adjustments, and all original pixel information in
+the adjusted area is retained. In addition, some researchers
+engaged in data augmentation put their emphasis on sim-
+ulating object occlusion issues. They have achieved good
+results in image classiﬁcation and object detection. For ex-
+ample, random erase [100] and CutOut [11] can randomly
+select the rectangle region in an image and ﬁll in a random
+or complementary value of zero. As for hide-and-seek [69]
+and grid mask [6], they randomly or evenly select multiple
+rectangle regions in an image and replace them to all ze-
+ros. If similar concepts are applied to feature maps, there
+are DropOut [71], DropConnect [80], and DropBlock [16]
+methods. In addition, some researchers have proposed the
+methods of using multiple images together to perform data
+augmentation. For example, MixUp [92] uses two images
+to multiply and superimpose with different coefﬁcient ra-
+tios, and then adjusts the label with these superimposed ra-
+tios. As for CutMix [91], it is to cover the cropped image
+to rectangle region of other images, and adjusts the label
+according to the size of the mix area.
+In addition to the
+above mentioned methods, style transfer GAN [15] is also
+used for data augmentation, and such usage can effectively
+reduce the texture bias learned by CNN.
+Different from the various approaches proposed above,
+some other bag of freebies methods are dedicated to solving
+the problem that the semantic distribution in the dataset may
+have bias. In dealing with the problem of semantic distri-
+bution bias, a very important issue is that there is a problem
+of data imbalance between different classes, and this prob-
+lem is often solved by hard negative example mining [72]
+or online hard example mining [67] in two-stage object de-
+tector. But the example mining method is not applicable
+
+for anchor-based method, it is to estimate the correspond-
+ing offset,
+i.e., {xtop lef t , ytop lef t , xbottom right , ybottom right}. As
+for example {xcenter of f set , ycenter of f set ,
+wof f set , hof f set } and {xtop lef t of f set , ytop lef t of f set ,
+xbottom right of f set , ybottom right of f set }. However, to di-
+to one-stage object detector, because this kind of detector
+belongs to the dense prediction architecture. Therefore Lin
+et al.
+[45] proposed focal loss to deal with the problem
+of data imbalance existing between various classes. An-
+other very important issue is that it is difﬁcult to express the
+relationship of the degree of association between different
+categories with the one-hot hard representation. This rep-
+resentation scheme is often used when executing labeling.
+The label smoothing proposed in [73] is to convert hard la-
+bel into soft label for training, which can make model more
+robust. In order to obtain a better soft label, Islam et al. [33]
+introduced the concept of knowledge distillation to design
+the label reﬁnement network.
+The last bag of freebies is the objective function of
+Bounding Box (BBox) regression. The traditional object
+detector usually uses Mean Square Error (MSE) to di-
+rectly perform regression on the center point coordinates
+and height and width of the BBox, i.e., {xcenter , ycenter ,
+w , h}, or the upper left point and the lower right point,
+rectly estimate the coordinate values of each point of the
+BBox is to treat these points as independent variables, but
+in fact does not consider the integrity of the object itself. In
+order to make this issue processed better, some researchers
+recently proposed IoU loss [90], which puts the coverage of
+predicted BBox area and ground truth BBox area into con-
+sideration. The IoU loss computing process will trigger the
+calculation of the four coordinate points of the BBox by ex-
+ecuting IoU with the ground truth, and then connecting the
+generated results into a whole code. Because IoU is a scale
+invariant representation, it can solve the problem that when
+traditional methods calculate the l1 or l2 loss of {x, y , w ,
+h}, the loss will increase with the scale. Recently, some
+researchers have continued to improve IoU loss. For exam-
+ple, GIoU loss [65] is to include the shape and orientation
+of object in addition to the coverage area. They proposed to
+ﬁnd the smallest area BBox that can simultaneously cover
+the predicted BBox and ground truth BBox, and use this
+BBox as the denominator to replace the denominator origi-
+nally used in IoU loss. As for DIoU loss [99], it additionally
+considers the distance of the center of an object, and CIoU
+loss [99], on the other hand simultaneously considers the
+overlapping area, the distance between center points, and
+the aspect ratio. CIoU can achieve better convergence speed
+and accuracy on the BBox regression problem.
+2.3. Bag of specials
+For those plugin modules and post-processing methods
+that only increase the inference cost by a small amount
+but can signiﬁcantly improve the accuracy of object detec-
+tion, we call them “bag of specials”. Generally speaking,
+these plugin modules are for enhancing certain attributes in
+a model, such as enlarging receptive ﬁeld, introducing at-
+tention mechanism, or strengthening feature integration ca-
+pability, etc., and post-processing is a method for screening
+model prediction results.
+Common modules that can be used to enhance recep-
+tive ﬁeld are SPP [25], ASPP [5], and RFB [47]. The
+SPP module was originated from Spatial Pyramid Match-
+ing (SPM) [39], and SPMs original method was to split fea-
+ture map into several d × d equal blocks, where d can be
+{1, 2, 3, ...}, thus forming spatial pyramid, and then extract-
+ing bag-of-word features. SPP integrates SPM into CNN
+and use max-pooling operation instead of bag-of-word op-
+eration. Since the SPP module proposed by He et al. [25]
+will output one dimensional feature vector, it is infeasible to
+be applied in Fully Convolutional Network (FCN). Thus in
+the design of YOLOv3 [63], Redmon and Farhadi improve
+SPP module to the concatenation of max-pooling outputs
+with kernel size k × k , where k = {1, 5, 9, 13}, and stride
+equals to 1. Under this design, a relatively large k × k max-
+pooling effectively increase the receptive ﬁeld of backbone
+feature. After adding the improved version of SPP module,
+YOLOv3-608 upgrades AP50 by 2.7% on the MS COCO
+object detection task at the cost of 0.5% extra computation.
+The difference in operation between ASPP [5] module and
+improved SPP module is mainly from the original k × k ker-
+nel size, max-pooling of stride equals to 1 to several 3 × 3
+kernel size, dilated ratio equals to k , and stride equals to 1
+in dilated convolution operation. RFB module is to use sev-
+eral dilated convolutions of k × k kernel, dilated ratio equals
+to k , and stride equals to 1 to obtain a more comprehensive
+spatial coverage than ASPP. RFB [47] only costs 7% extra
+inference time to increase the AP50 of SSD on MS COCO
+by 5.7%.
+The attention module that is often used in object detec-
+tion is mainly divided into channel-wise attention and point-
+wise attention, and the representatives of these two atten-
+tion models are Squeeze-and-Excitation (SE) [29] and Spa-
+tial Attention Module (SAM) [85], respectively. Although
+SE module can improve the power of ResNet50 in the Im-
+ageNet image classiﬁcation task 1% top-1 accuracy at the
+cost of only increasing the computational effort by 2%, but
+on a GPU usually it will increase the inference time by
+about 10%, so it is more appropriate to be used in mobile
+devices. But for SAM, it only needs to pay 0.1% extra cal-
+culation and it can improve ResNet50-SE 0.5% top-1 accu-
+racy on the ImageNet image classiﬁcation task. Best of all,
+it does not affect the speed of inference on the GPU at all.
+In terms of feature integration, the early practice is to use
+skip connection [51] or hyper-column [22] to integrate low-
+level physical feature to high-level semantic feature. Since
+multi-scale prediction methods such as FPN have become
+popular, many lightweight modules that integrate different
+feature pyramid have been proposed. The modules of this
+sort include SFAM [98], ASFF [48], and BiFPN [77]. The
+main idea of SFAM is to use SE module to execute channel-
+wise level re-weighting on multi-scale concatenated feature
+maps. As for ASFF, it uses softmax as point-wise level re-
+weighting and then adds feature maps of different scales.
+In BiFPN, the multi-input weighted residual connections is
+proposed to execute scale-wise level re-weighting, and then
+add feature maps of different scales.
+In the research of deep learning, some people put their
+focus on searching for good activation function. A good
+activation function can make the gradient more efﬁciently
+propagated, and at the same time it will not cause too
+much extra computational cost.
+In 2010, Nair and Hin-
+ton [56] propose ReLU to substantially solve the gradient
+vanish problem which is frequently encountered in tradi-
+tional tanh and sigmoid activation function. Subsequently,
+LReLU [54], PReLU [24], ReLU6 [28], Scaled Exponential
+Linear Unit (SELU) [35], Swish [59], hard-Swish [27], and
+Mish [55], etc., which are also used to solve the gradient
+vanish problem, have been proposed. The main purpose of
+LReLU and PReLU is to solve the problem that the gradi-
+ent of ReLU is zero when the output is less than zero. As
+for ReLU6 and hard-Swish, they are specially designed for
+quantization networks. For self-normalizing a neural net-
+work, the SELU activation function is proposed to satisfy
+the goal. One thing to be noted is that both Swish and Mish
+are continuously differentiable activation function.
+The post-processing method commonly used in deep-
+learning-based object detection is NMS, which can be used
+to ﬁlter those BBoxes that badly predict the same ob-
+ject, and only retain the candidate BBoxes with higher re-
+sponse. The way NMS tries to improve is consistent with
+the method of optimizing an objective function. The orig-
+inal method proposed by NMS does not consider the con-
+text information, so Girshick et al. [19] added classiﬁcation
+conﬁdence score in R-CNN as a reference, and according to
+the order of conﬁdence score, greedy NMS was performed
+in the order of high score to low score. As for soft NMS [1],
+it considers the problem that the occlusion of an object may
+cause the degradation of conﬁdence score in greedy NMS
+with IoU score. The DIoU NMS [99] developers way of
+thinking is to add the information of the center point dis-
+tance to the BBox screening process on the basis of soft
+NMS. It is worth mentioning that, since none of above post-
+processing methods directly refer to the captured image fea-
+tures, post-processing is no longer required in the subse-
+quent development of an anchor-free method.
+
+Backbone model
+Input network
+resolution
+Receptive
+ﬁeld size
+Parameters
+CSPResNext50
+CSPDarknet53
+EfﬁcientNet-B3 (ours)
+512x512
+512x512
+512x512
+425x425
+725x725
+1311x1311
+20.6 M
+27.6 M
+12.0 M
+Average size
+of layer output
+(WxHxC)
+1058 K
+950 K
+668 K
+BFLOPs
+(512x512 network resolution)
+FPS
+(GPU RTX 2070)
+31 (15.5 FMA)
+52 (26.0 FMA)
+11 (5.5 FMA)
+
+
+
+3. Methodology
+The basic aim is fast operating speed of neural network,
+in production systems and optimization for parallel compu-
+tations, rather than the low computation volume theoreti-
+cal indicator (BFLOP). We present two options of real-time
+neural networks:
+• For GPU we use a small number of groups (1 - 8) in
+convolutional layers: CSPResNeXt50 / CSPDarknet53
+• For VPU - we use grouped-convolution, but we re-
+frain from using Squeeze-and-excitement (SE) blocks
+- speciﬁcally this includes the following models:
+EfﬁcientNet-lite / MixNet [76] / GhostNet [21] / Mo-
+bileNetV3
+3.1. Selection of architecture
+Hypothetically speaking, we can assume that a model
+with a larger receptive ﬁeld size (with a larger number of
+convolutional layers 3 × 3) and a larger number of parame-
+ters should be selected as the backbone. Table 1 shows the
+information of CSPResNeXt50, CSPDarknet53, and Efﬁ-
+cientNet B3. The CSPResNext50 contains only 16 convo-
+lutional layers 3 × 3, a 425 × 425 receptive ﬁeld and 20.6
+M parameters, while CSPDarknet53 contains 29 convolu-
+tional layers 3 × 3, a 725 × 725 receptive ﬁeld and 27.6
+M parameters. This theoretical justiﬁcation, together with
+our numerous experiments, show that CSPDarknet53 neu-
+ral network is the optimal model of the two as the backbone
+for a detector.
+The inﬂuence of the receptive ﬁeld with different sizes is
+summarized as follows:
+• Up to the object size - allows viewing the entire object
+• Up to network size - allows viewing the context around
+the object
+• Exceeding the network size - increases the number of
+connections between the image point and the ﬁnal ac-
+tivation
+We add the SPP block over the CSPDarknet53, since it
+signiﬁcantly increases the receptive ﬁeld, separates out the
+most signiﬁcant context features and causes almost no re-
+duction of the network operation speed. We use PANet as
+the method of parameter aggregation from different back-
+bone levels for different detector levels, instead of the FPN
+used in YOLOv3.
+Finally, we choose CSPDarknet53 backbone, SPP addi-
+tional module, PANet path-aggregation neck, and YOLOv3
+(anchor based) head as the architecture of YOLOv4.
+In the future we plan to expand signiﬁcantly the content
+of Bag of Freebies (BoF) for the detector, which theoreti-
+cally can address some problems and increase the detector
+accuracy, and sequentially check the inﬂuence of each fea-
+ture in an experimental fashion.
+We do not use Cross-GPU Batch Normalization (CGBN
+or SyncBN) or expensive specialized devices. This al-
+lows anyone to reproduce our state-of-the-art outcomes on
+a conventional graphic processor e.g. GTX 1080Ti or RTX
+2080Ti.
+
+3.2. Selection of BoF and BoS
+For improving the object detection training, a CNN usu-
+ally uses the following:
+• Activations: ReLU, leaky-ReLU, parametric-ReLU,
+ReLU6, SELU, Swish, or Mish
+• Bounding box regression loss: MSE, IoU, GIoU,
+CIoU, DIoU
+• Data augmentation: CutOut, MixUp, CutMix
+• Regularization method: DropOut, DropPath [36],
+Spatial DropOut [79], or DropBlock
+• Normalization of the network activations by their
+mean and variance: Batch Normalization (BN) [32],
+Cross-GPU Batch Normalization (CGBN or SyncBN)
+[93], Filter Response Normalization (FRN) [70], or
+Cross-Iteration Batch Normalization (CBN) [89]
+• Skip-connections: Residual connections, Weighted
+residual connections, Multi-input weighted residual
+connections, or Cross stage partial connections (CSP)
+As for training activation function, since PReLU and
+SELU are more difﬁcult to train, and ReLU6 is speciﬁcally
+designed for quantization network, we therefore remove the
+above activation functions from the candidate list. In the
+method of reqularization, the people who published Drop-
+Block have compared their method with other methods in
+detail, and their regularization method has won a lot. There-
+fore, we did not hesitate to choose DropBlock as our reg-
+ularization method. As for the selection of normalization
+method, since we focus on a training strategy that uses only
+one GPU, syncBN is not considered.
+3.3. Additional improvements
+In order to make the designed detector more suitable for
+training on single GPU, we made additional design and im-
+provement as follows:
+• We introduce a new method of data augmentation Mo-
+saic, and Self-Adversarial Training (SAT)
+• We select optimal hyper-parameters while applying
+genetic algorithms
+• We modify some exsiting methods to make our design
+suitble for efﬁcient training and detection - modiﬁed
+SAM, modiﬁed PAN, and Cross mini-Batch Normal-
+ization (CmBN)
+Mosaic represents a new data augmentation method that
+mixes 4 training images. Thus 4 different contexts are
+mixed, while CutMix mixes only 2 input images. This al-
+lows detection of objects outside their normal context. In
+addition, batch normalization calculates activation statistics
+from 4 different images on each layer. This signiﬁcantly
+reduces the need for a large mini-batch size.
+Self-Adversarial Training (SAT) also represents a new
+data augmentation technique that operates in 2 forward
+backward stages. In the 1st stage the neural network alters
+the original image instead of the network weights. In this
+way the neural network executes an adversarial attack on it-
+self, altering the original image to create the deception that
+there is no desired object on the image. In the 2nd stage, the
+neural network is trained to detect an object on this modiﬁed
+image in the normal way.
+CmBN represents a CBN modiﬁed version, as shown
+in Figure 4, deﬁned as Cross mini-Batch Normalization
+(CmBN). This collects statistics only between mini-batches
+within a single batch.
+We modify SAM from spatial-wise attention to point-
+wise attention, and replace shortcut connection of PAN to
+concatenation, as shown in Figure 5 and Figure 6, respec-
+tively.
+
+4. Experiments
+We test
+the inﬂuence of different
+training improve-
+ment techniques on accuracy of the classiﬁer on ImageNet
+(ILSVRC 2012 val) dataset, and then on the accuracy of the
+detector on MS COCO (test-dev 2017) dataset.
+4.1. Experimental setup
+In ImageNet image classiﬁcation experiments, the de-
+fault hyper-parameters are as follows: the training steps is
+8,000,000; the batch size and the mini-batch size are 128
+and 32, respectively; the polynomial decay learning rate
+scheduling strategy is adopted with initial learning rate 0.1;
+the warm-up steps is 1000; the momentum and weight de-
+cay are respectively set as 0.9 and 0.005. All of our BoS
+experiments use the same hyper-parameter as the default
+setting, and in the BoF experiments, we add an additional
+50% training steps.
+In the BoF experiments, we verify
+MixUp, CutMix, Mosaic, Bluring data augmentation, and
+label smoothing regularization methods. In the BoS experi-
+ments, we compared the effects of LReLU, Swish, and Mish
+activation function. All experiments are trained with a 1080
+Ti or 2080 Ti GPU.
+In MS COCO object detection experiments,
+the de-
+fault hyper-parameters are as follows: the training steps is
+500,500; the step decay learning rate scheduling strategy is
+adopted with initial learning rate 0.01 and multiply with a
+factor 0.1 at the 400,000 steps and the 450,000 steps, re-
+spectively; The momentum and weight decay are respec-
+tively set as 0.9 and 0.0005. All architectures use a sin-
+gle GPU to execute multi-scale training in the batch size
+of 64 while mini-batch size is 8 or 4 depend on the ar-
+chitectures and GPU memory limitation. Except for us-
+ing genetic algorithm for hyper-parameter search experi-
+ments, all other experiments use default setting. Genetic
+algorithm used YOLOv3-SPP to train with GIoU loss and
+search 300 epochs for min-val 5k sets. We adopt searched
+learning rate 0.00261, momentum 0.949, IoU threshold for
+assigning ground truth 0.213, and loss normalizer 0.07 for
+genetic algorithm experiments. We have veriﬁed a large
+number of BoF, including grid sensitivity elimination, mo-
+saic data augmentation, IoU threshold, genetic algorithm,
+class label smoothing, cross mini-batch normalization, self-
+adversarial training, cosine annealing scheduler, dynamic
+mini-batch size, DropBlock, Optimized Anchors, different
+kind of IoU losses. We also conduct experiments on various
+BoS, including Mish, SPP, SAM, RFB, BiFPN, and Gaus-
+sian YOLO [8]. For all experiments, we only use one GPU
+for training, so techniques such as syncBN that optimizes
+multiple GPUs are not used.
+3.4. YOLOv4
+In this section, we shall elaborate the details of YOLOv4.
+YOLOv4 consists of:
+• Backbone: CSPDarknet53 [81]
+• Neck: SPP [25], PAN [49]
+• Head: YOLOv3 [63]
+YOLO v4 uses:
+• Bag of Freebies (BoF) for backbone: CutMix and
+Mosaic data augmentation, DropBlock regularization,
+Class label smoothing
+• Bag of Specials (BoS) for backbone: Mish activa-
+tion, Cross-stage partial connections (CSP), Multi-
+input weighted residual connections (MiWRC)
+• Bag of Freebies (BoF) for detector: CIoU-loss,
+CmBN, DropBlock regularization, Mosaic data aug-
+mentation, Self-Adversarial Training, Eliminate grid
+sensitivity, Using multiple anchors for a single ground
+truth, Cosine annealing scheduler [52], Optimal hyper-
+parameters, Random training shapes
+• Bag of Specials (BoS) for detector: Mish activation,
+SPP-block, SAM-block, PAN path-aggregation block,
+DIoU-NMS
+
+4.2. Inﬂuence of different features on Classiﬁer
+training
+4.3. Inﬂuence of different features on Detector
+training
+First, we study the inﬂuence of different features on
+classiﬁer training; speciﬁcally, the inﬂuence of Class la-
+bel smoothing, the inﬂuence of different data augmentation
+techniques, bilateral blurring, MixUp, CutMix and Mosaic,
+as shown in Fugure 7, and the inﬂuence of different activa-
+tions, such as Leaky-ReLU (by default), Swish, and Mish.
+In our experiments, as illustrated in Table 2, the clas-
+siﬁer’s accuracy is improved by introducing the features
+such as: CutMix and Mosaic data augmentation, Class la-
+bel smoothing, and Mish activation. As a result, our BoF-
+backbone (Bag of Freebies) for classiﬁer training includes
+the following: CutMix and Mosaic data augmentation and
+Class label smoothing. In addition we use Mish activation
+as a complementary option, as shown in Table 2 and Table
+3.
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+77.9% 94.0%
+77.2% 94.0%
+78.0% 94.3%
+78.1% 94.5%
+77.5% 93.8%
+64.5% 86.0%
+78.1% 94.4%
+(cid:88) 78.9% 94.5%
+78.5% 94.8%
+(cid:88) 79.8% 95.2%
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+77.2% 93.6%
+77.8% 94.4%
+(cid:88) 78.7% 94.8%
+
+Further study concerns the inﬂuence of different Bag-of-
+Freebies (BoF-detector) on the detector training accuracy,
+as shown in Table 4. We signiﬁcantly expand the BoF list
+through studying different features that increase the detector
+accuracy without affecting FPS:
+• S: Eliminate grid sensitivity the equation bx = σ(tx )+
+cx , by = σ(ty ) + cy , where cx and cy are always whole
+numbers, is used in YOLOv3 for evaluating the ob-
+ject coordinates, therefore, extremely high tx absolute
+values are required for the bx value approaching the
+cx or cx + 1 values. We solve this problem through
+multiplying the sigmoid by a factor exceeding 1.0, so
+eliminating the effect of grid on which the object is
+undetectable.
+• M: Mosaic data augmentation - using the 4-image mo-
+saic during training instead of single image
+• IT: IoU threshold - using multiple anchors for a single
+ground truth IoU (truth, anchor) > IoU threshold
+• GA: Genetic algorithms - using genetic algorithms for
+selecting the optimal hyperparameters during network
+training on the ﬁrst 10% of time periods
+• LS: Class label smoothing - using class label smooth-
+ing for sigmoid activation
+• CBN: CmBN - using Cross mini-Batch Normalization
+for collecting statistics inside the entire batch, instead
+of collecting statistics inside a single mini-batch
+• CA: Cosine annealing scheduler - altering the learning
+rate during sinusoid training
+• DM: Dynamic mini-batch size - automatic increase of
+mini-batch size during small resolution training by us-
+ing Random training shapes
+• OA: Optimized Anchors - using the optimized anchors
+for training with the 512x512 network resolution
+• GIoU, CIoU, DIoU, MSE - using different loss algo-
+rithms for bounded box regression
+Further study concerns the inﬂuence of different Bag-
+of-Specials (BoS-detector) on the detector training accu-
+racy, including PAN, RFB, SAM, Gaussian YOLO (G), and
+ASFF, as shown in Table 5. In our experiments, the detector
+gets best performance when using SPP, PAN, and SAM.
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88) (cid:88)
+(cid:88)
+(cid:88) (cid:88)
+(cid:88) (cid:88)
+(cid:88) (cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+MSE
+MSE
+MSE
+MSE
+MSE
+MSE
+MSE
+MSE
+MSE
+GIoU
+DIoU
+CIoU
+CIoU
+CIoU
+MSE
+GIoU
+CIoU
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+38.0%
+37.7%
+60.0%
+59.9%
+40.8%
+40.5%
+39.1% 61.8% 42.0%
+36.9%
+59.7%
+39.4%
+38.9% 61.7% 41.9%
+33.0%
+55.4%
+35.4%
+38.4% 60.7% 41.3%
+38.7% 60.7% 41.9%
+35.3%
+57.2%
+38.0%
+39.4% 59.4% 42.5%
+39.1% 58.8% 42.1%
+39.6% 59.2% 42.6%
+41.5% 64.0% 44.8%
+36.1%
+56.5%
+38.4%
+40.3% 64.0% 43.1%
+42.4% 64.4% 45.9%
+42.4% 64.4% 45.9%
+CSPResNeXt50-PANet-SPP
+CSPResNeXt50-PANet-SPP-RFB
+CSPResNeXt50-PANet-SPP-SAM
+CSPResNeXt50-PANet-SPP-SAM-G
+41.6% 62.7% 45.0%
+CSPResNeXt50-PANet-SPP-ASFF-RFB 41.1% 62.6% 44.4%
+42.4% 64.4% 45.9%
+41.8% 62.7% 45.1%
+42.7% 64.6% 46.3%
+4.4. Inﬂuence of different backbones and pre-
+trained weightings on Detector training
+Further on we study the inﬂuence of different backbone
+models on the detector accuracy, as shown in Table 6. We
+notice that the model characterized with the best classiﬁca-
+tion accuracy is not always the best in terms of the detector
+accuracy.
+First, although classiﬁcation accuracy of CSPResNeXt-
+50 models trained with different features is higher compared
+to CSPDarknet53 models, the CSPDarknet53 model shows
+higher accuracy in terms of object detection.
+Second, using BoF and Mish for the CSPResNeXt50
+classiﬁer training increases its classiﬁcation accuracy, but
+further application of these pre-trained weightings for de-
+tector training reduces the detector accuracy. However, us-
+ing BoF and Mish for the CSPDarknet53 classiﬁer training
+increases the accuracy of both the classiﬁer and the detector
+which uses this classiﬁer pre-trained weightings. The net
+result is that backbone CSPDarknet53 is more suitable for
+the detector than for CSPResNeXt50.
+We observe that the CSPDarknet53 model demonstrates
+a greater ability to increase the detector accuracy owing to
+various improvements.
+
+AP75
+AP50
+Size
+
+512x512
+512x512
+42.4
+42.3
+64.4
+64.3
+45.9
+45.7
+(BoF-backbone)
+CSPResNeXt50-PANet-SPP
+(BoF-backbone + Mish)
+CSPDarknet53-PANet-SPP
+(BoF-backbone)
+CSPDarknet53-PANet-SPP
+(BoF-backbone + Mish)
+512x512
+42.3
+64.2
+45.8
+512x512
+42.4
+512x512
+43.0
+64.5
+64.9
+46.0
+46.5
+4.5. Inﬂuence of different mini-batch size on Detec-
+tor training
+Finally, we analyze the results obtained with models
+trained with different mini-batch sizes, and the results are
+shown in Table 7. From the results shown in Table 7, we
+found that after adding BoF and BoS training strategies, the
+mini-batch size has almost no effect on the detector’s per-
+formance. This result shows that after the introduction of
+BoF and BoS, it is no longer necessary to use expensive
+GPUs for training. In other words, anyone can use only a
+conventional GPU to train an excellent detector.
+608
+37.1
+59.2
+39.9
+(without BoF/BoS, mini-batch 4)
+CSPResNeXt50-PANet-SPP
+(without BoF/BoS, mini-batch 8)
+CSPDarknet53-PANet-SPP
+(with BoF/BoS, mini-batch 4)
+CSPDarknet53-PANet-SPP
+(with BoF/BoS, mini-batch 8)
+608
+38.4
+60.6
+41.6
+512
+512
+41.6
+41.7
+64.1
+64.2
+45.0
+45.2
+5. Results
+Comparison of the results obtained with other state-
+of-the-art object detectors are shown in Figure 8. Our
+YOLOv4 are located on the Pareto optimality curve and are
+superior to the fastest and most accurate detectors in terms
+of both speed and accuracy.
+Since different methods use GPUs of different architec-
+tures for inference time veriﬁcation, we operate YOLOv4
+on commonly adopted GPUs of Maxwell, Pascal, and Volta
+architectures, and compare them with other state-of-the-art
+methods. Table 8 lists the frame rate comparison results of
+using Maxwell GPU, and it can be GTX Titan X (Maxwell)
+or Tesla M40 GPU. Table 9 lists the frame rate comparison
+results of using Pascal GPU, and it can be Titan X (Pascal),
+Titan Xp, GTX 1080 Ti, or Tesla P100 GPU. As for Table
+10, it lists the frame rate comparison results of using Volta
+GPU, and it can be Titan Volta or Tesla V100 GPU.
+6. Conclusions
+We offer a state-of-the-art detector which is faster (FPS)
+and more accurate (MS COCO AP50...95 and AP50 ) than
+all available alternative detectors. The detector described
+can be trained and used on a conventional GPU with 8-16
+GB-VRAM this makes its broad use possible. The original
+concept of one-stage anchor-based detectors has proven its
+viability. We have veriﬁed a large number of features, and
+selected for use such of them for improving the accuracy of
+both the classiﬁer and the detector. These features can be
+used as best-practice for future studies and developments.
+7. Acknowledgements
+The authors wish to thank Glenn Jocher
+for
+the
+ideas of Mosaic data augmentation,
+the selection of
+hyper-parameters by using genetic algorithms and solving
+the grid sensitivity problem https://github.com/
+ultralytics/yolov3.
+
+APM
+APL
+YOLOv4
+YOLOv4
+YOLOv4
+CSPDarknet-53
+CSPDarknet-53
+CSPDarknet-53
+416
+512
+608
+38 (M)
+31 (M)
+23 (M)
+41.2%
+62.8%
+44.3%
+20.4%
+44.4%
+56.0%
+43.0% 64.9% 46.5% 24.3% 46.1% 55.2%
+43.5%
+65.7%
+47.3%
+26.7%
+46.7%
+53.3%
+Learning Rich Features at High-Speed for Single-Shot Object Detection [84]
+LRF
+LRF
+LRF
+LRF
+VGG-16
+ResNet-101
+VGG-16
+ResNet-101
+300
+300
+512
+512
+76.9 (M)
+52.6 (M)
+38.5 (M)
+31.3 (M)
+32.0%
+34.3%
+36.2%
+37.3%
+51.5%
+54.1%
+56.6%
+58.5%
+33.8%
+36.6%
+38.7%
+39.7%
+12.6%
+13.2%
+19.0%
+19.7%
+34.9%
+38.2%
+39.9%
+42.8%
+47.0%
+50.7%
+48.8%
+50.1%
+Receptive Field Block Net for Accurate and Fast Object Detection [47]
+RFBNet
+RFBNet
+RFBNet-E
+VGG-16
+VGG-16
+VGG-16
+300
+512
+512
+66.7 (M)
+33.3 (M)
+30.3 (M)
+30.3%
+33.8%
+34.4%
+49.3%
+54.2%
+55.7%
+31.8%
+35.9%
+36.4%
+11.8%
+16.2%
+17.6%
+31.9%
+37.1%
+37.0%
+45.9%
+47.4%
+47.6%
+YOLOv3: An incremental improvement [63]
+YOLOv3
+YOLOv3
+YOLOv3
+YOLOv3-SPP
+Darknet-53
+Darknet-53
+Darknet-53
+Darknet-53
+320
+416
+608
+608
+45 (M)
+35 (M)
+20 (M)
+20 (M)
+28.2%
+31.0%
+33.0%
+36.2%
+51.5%
+55.3%
+57.9%
+60.6%
+29.7%
+32.3%
+34.4%
+38.2%
+11.9%
+15.2%
+18.3%
+20.6%
+30.6%
+33.2%
+35.4%
+37.4%
+43.4%
+42.8%
+41.9%
+46.1%
+SSD: Single shot multibox detector [50]
+SSD
+SSD
+VGG-16
+VGG-16
+300
+512
+43 (M)
+22 (M)
+25.1%
+28.8%
+43.1%
+48.5%
+25.8%
+30.3%
+6.6%
+10.9%
+25.9%
+31.8%
+41.4%
+43.5%
+Single-shot reﬁnement neural network for object detection [95]
+ReﬁneDet
+ReﬁneDet
+VGG-16
+VGG-16
+320
+512
+38.7 (M)
+22.3 (M)
+29.4%
+33.0%
+49.2%
+54.5%
+31.3%
+35.5%
+10.0%
+16.3%
+32.0%
+36.3%
+44.4%
+44.3%
+M2det: A single-shot object detector based on multi-level feature pyramid network [98]
+M2det
+M2det
+M2det
+M2det
+M2det
+VGG-16
+ResNet-101
+VGG-16
+ResNet-101
+VGG-16
+320
+320
+512
+512
+800
+33.4 (M)
+21.7 (M)
+18 (M)
+15.8 (M)
+11.8 (M)
+33.5%
+34.3%
+37.6%
+38.8%
+41.0%
+52.4%
+53.5%
+56.6%
+59.4%
+59.7%
+35.6%
+36.5%
+40.5%
+41.7%
+45.0%
+14.4%
+14.8%
+18.4%
+20.5%
+22.1%
+37.6%
+38.8%
+43.4%
+43.9%
+46.5%
+47.6%
+47.9%
+51.2%
+53.4%
+53.8%
+Parallel Feature Pyramid Network for Object Detection [34]
+PFPNet-R
+PFPNet-R
+VGG-16
+VGG-16
+320
+512
+33 (M)
+24 (M)
+31.8%
+35.2%
+52.9%
+57.6%
+33.6%
+37.9%
+12%
+18.7%
+35.5%
+38.6%
+46.1%
+45.9%
+Focal Loss for Dense Object Detection [45]
+RetinaNet
+RetinaNet
+RetinaNet
+RetinaNet
+ResNet-50
+ResNet-101
+ResNet-50
+ResNet-101
+500
+500
+800
+800
+13.9 (M)
+11.1 (M)
+6.5 (M)
+5.1 (M)
+32.5%
+34.4%
+35.7%
+37.8%
+50.9%
+53.1%
+55.0%
+57.5%
+34.8%
+36.8%
+38.5%
+40.8%
+13.9%
+14.7%
+18.9%
+20.2%
+35.8%
+38.5%
+38.9%
+41.1%
+46.7%
+49.1%
+46.3%
+49.2%
+Feature Selective Anchor-Free Module for Single-Shot Object Detection [102]
+AB+FSAF
+AB+FSAF
+ResNet-101
+ResNeXt-101
+800
+800
+5.6 (M)
+2.8 (M)
+40.9%
+42.9%
+61.5%
+63.8%
+44.0%
+46.3%
+24.0%
+26.6%
+44.2%
+46.2%
+51.3%
+52.7%
+CornerNet: Detecting objects as paired keypoints [37]
+CornerNet
+Hourglass
+512
+4.4 (M)
+40.5%
+57.8%
+45.3%
+20.8%
+44.8%
+56.7%
+
+Backbone
+Size
+FPS
+AP
+AP50
+AP75
+YOLOv4: Optimal Speed and Accuracy of Object Detection
+APS
+APM
+APL
+YOLOv4
+YOLOv4
+YOLOv4
+CSPDarknet-53
+CSPDarknet-53
+CSPDarknet-53
+416
+512
+608
+54 (P)
+43 (P)
+33 (P)
+41.2%
+43.0%
+62.8%
+64.9%
+44.3%
+46.5%
+20.4%
+24.3%
+44.4%
+46.1%
+56.0%
+55.2%
+43.5% 65.7% 47.3% 26.7% 46.7% 53.3%
+CenterMask: Real-Time Anchor-Free Instance Segmentation [40]
+CenterMask-Lite MobileNetV2-FPN
+CenterMask-Lite
+VoVNet-19-FPN
+CenterMask-Lite
+VoVNet-39-FPN
+600× 50.0 (P)
+600× 43.5 (P)
+600× 35.7 (P)
+30.2%
+35.9%
+40.7%
+-
+-
+-
+-
+-
+-
+14.2%
+19.6%
+22.4%
+31.9%
+38.0%
+40.9%
+45.9%
+43.2% 53.5%
+Enriched Feature Guided Reﬁnement Network for Object Detection [57]
+EFGRNet
+EFGRNet
+EFGRNet
+VGG-16
+VG-G16
+ResNet-101
+320
+512
+512
+47.6 (P)
+25.7 (P)
+21.7 (P)
+33.2%
+37.5%
+39.0%
+53.4%
+58.8%
+58.8%
+35.4%
+40.4%
+42.3%
+13.4%
+19.7%
+17.8%
+37.1%
+41.6%
+43.6%
+47.9%
+49.4%
+54.5%
+Hierarchical Shot Detector [3]
+HSD
+HSD
+HSD
+HSD
+HSD
+VGG-16
+VGG-16
+ResNet-101
+ResNeXt-101
+ResNet-101
+320
+512
+512
+512
+768
+40 (P)
+23.3 (P)
+20.8 (P)
+15.2 (P)
+10.9 (P)
+33.5%
+38.8%
+40.2%
+41.9%
+42.3%
+53.2%
+58.2%
+59.4%
+61.1%
+61.2%
+36.1%
+42.5%
+44.0%
+46.2%
+46.9%
+15.0%
+21.8%
+20.0%
+21.8%
+22.8%
+35.0%
+41.9%
+44.4%
+46.6%
+47.3%
+47.8%
+50.2%
+54.9%
+57.0%
+55.9%
+Dynamic anchor feature selection for single-shot object detection [41]
+DAFS
+VGG16
+512
+35 (P)
+33.8%
+52.9%
+36.9%
+14.6%
+37.0%
+47.7%
+Soft Anchor-Point Object Detection [101]
+SAPD
+SAPD
+SAPD
+ResNet-50
+ResNet-50-DCN
+ResNet-101-DCN
+-
+-
+-
+14.9 (P)
+12.4 (P)
+9.1 (P)
+41.7%
+44.3%
+46.0%
+61.9%
+64.4%
+65.9%
+44.6%
+47.7%
+49.6%
+24.1%
+25.5%
+26.3%
+44.6%
+47.3%
+49.2%
+51.6%
+57.0%
+59.6%
+Region proposal by guided anchoring [82]
+RetinaNet
+Faster R-CNN
+ResNet-50
+ResNet-50
+-
+-
+10.8 (P)
+9.4 (P)
+37.1%
+39.8%
+56.9%
+59.2%
+40.0%
+43.5%
+20.1%
+21.8%
+40.1%
+42.6%
+48.0%
+50.7%
+RepPoints: Point set representation for object detection [87]
+RPDet
+RPDet
+ResNet-101
+ResNet-101-DCN
+-
+-
+10 (P)
+8 (P)
+41.0%
+45.0%
+62.9%
+66.1%
+44.3%
+49.0%
+23.6%
+26.6%
+44.1%
+48.6%
+51.7%
+57.5%
+Libra R-CNN: Towards balanced learning for object detection [58]
+Libra R-CNN
+ResNet-101
+-
+9.5 (P)
+41.1%
+62.1%
+44.7%
+23.4%
+43.7%
+52.5%
+FreeAnchor: Learning to match anchors for visual object detection [96]
+FreeAnchor
+ResNet-101
+-
+9.1 (P)
+43.1%
+62.2%
+46.4%
+24.5%
+46.1%
+54.8%
+RetinaMask: Learning to Predict Masks Improves State-of-The-Art Single-Shot Detection for Free [14]
+RetinaMask
+RetinaMask
+RetinaMask
+RetinaMask
+ResNet-50-FPN
+ResNet-101-FPN
+ResNet-101-FPN-GN
+ResNeXt-101-FPN-GN
+800×
+800×
+800×
+800×
+8.1 (P)
+6.9 (P)
+6.5 (P)
+4.3 (P)
+39.4%
+41.4%
+41.7%
+42.6%
+58.6%
+60.8%
+61.7%
+62.5%
+42.3%
+44.6%
+45.0%
+46.0%
+21.9%
+23.0%
+23.5%
+24.8%
+42.0%
+44.5%
+44.7%
+45.6%
+51.0%
+53.5%
+52.8%
+53.8%
+Cascade R-CNN: Delving into high quality object detection [2]
+Cascade R-CNN
+ResNet-101
+-
+8 (P)
+42.8%
+62.1%
+46.3%
+23.7%
+45.5%
+55.2%
+Centernet: Object detection with keypoint triplets [13]
+Centernet
+Centernet
+Hourglass-52
+Hourglass-104
+-
+-
+4.4 (P)
+3.3 (P)
+41.6%
+44.9%
+59.4%
+62.4%
+44.2%
+48.1%
+22.5%
+25.6%
+43.1%
+47.4%
+54.1%
+57.4%
+Scale-Aware Trident Networks for Object Detection [42]
+TridentNet
+TridentNet
+ResNet-101
+ResNet-101-DCN
+-
+-
+2.7 (P)
+1.3 (P)
+42.7%
+46.8%
+63.6%
+67.6%
+46.5%
+51.5%
+23.9%
+28.0%
+46.6%
+51.2%
+56.6%
+60.5%
+
+Backbone
+Size
+FPS
+AP
+AP50
+AP75
+YOLOv4: Optimal Speed and Accuracy of Object Detection
+APS
+APM
+APL
+YOLOv4
+YOLOv4
+YOLOv4
+CSPDarknet-53
+CSPDarknet-53
+CSPDarknet-53
+416
+512
+608
+96 (V)
+83 (V)
+62 (V)
+41.2%
+43.0%
+62.8%
+64.9%
+44.3%
+46.5%
+20.4%
+24.3%
+44.4%
+46.1%
+56.0%
+55.2%
+53.3%
+43.5% 65.7% 47.3% 26.7% 46.7%
+EfﬁcientDet: Scalable and Efﬁcient Object Detection [77]
+EfﬁcientDet-D0
+EfﬁcientDet-D1
+EfﬁcientDet-D2
+EfﬁcientDet-D3
+Efﬁcient-B0
+Efﬁcient-B1
+Efﬁcient-B2
+Efﬁcient-B3
+512
+640
+768
+896
+62.5 (V)
+50.0 (V)
+41.7 (V)
+23.8 (V)
+33.8%
+39.6%
+43.0%
+45.8%
+52.2%
+58.6%
+62.3%
+65.0%
+35.8%
+42.3%
+46.2%
+49.3%
+12.0%
+17.9%
+38.3%
+44.3%
+51.2%
+56.0%
+22.5% 47.0% 58.4%
+26.6%
+49.4%
+59.8%
+Learning Spatial Fusion for Single-Shot Object Detection [48]
+Darknet-53
+Darknet-53
+Darknet-53
+Darknet-53
+320
+608×
+416
+800×
+60 (V)
+54 (V)
+45.5 (V)
+29.4 (V)
+38.1%
+40.6%
+42.4%
+43.9%
+57.4%
+42.1%
+16.1%
+60.6%
+45.1%
+20.3%
+63.0% 47.4% 25.5%
+64.1%
+49.2%
+27.0%
+41.6%
+44.2%
+45.7%
+46.6%
+53.6%
+54.1%
+52.3%
+53.4%
+HarDNet: A Low Memory Trafﬁc Network [4]
+RFBNet
+RFBNet
+HarDNet68
+HarDNet85
+512
+512
+41.5 (V)
+37.1 (V)
+33.9%
+36.8%
+54.3%
+57.1%
+36.2%
+39.5%
+14.7%
+16.9%
+36.6%
+40.5%
+50.5%
+52.9%
+Focal Loss for Dense Object Detection [45]
+RetinaNet
+RetinaNet
+RetinaNet
+RetinaNet
+ResNet-50
+ResNet-101
+ResNet-50
+ResNet-101
+640
+640
+1024
+1024
+37 (V)
+29.4 (V)
+19.6 (V)
+15.4 (V)
+37.0%
+37.9%
+40.1%
+41.1%
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+SM-NAS: Structural-to-Modular Neural Architecture Search for Object Detection [88]
+SM-NAS: E2
+SM-NAS: E3
+SM-NAS: E5
+-
+-
+-
+800×600
+800×600
+1333×800
+25.3 (V)
+19.7 (V)
+9.3 (V)
+40.0%
+42.8%
+45.9%
+58.2%
+61.2%
+64.6%
+43.4%
+46.5%
+49.6%
+21.1%
+23.5%
+27.1%
+42.4%
+45.5%
+49.0%
+51.7%
+55.6%
+58.0%
+NAS-FPN: Learning scalable feature pyramid architecture for object detection [17]
+NAS-FPN
+NAS-FPN
+ResNet-50
+ResNet-50
+640
+1024
+24.4 (V)
+12.7 (V)
+39.9%
+44.2%
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+Bridging the Gap Between Anchor-based and Anchor-free Detection via Adaptive Training Sample Selection [94]
+ATSS
+ATSS
+ResNet-101
+ResNet-101-DCN
+800×
+800×
+17.5 (V)
+13.7 (V)
+43.6%
+46.3%
+62.1%
+64.7%
+47.4%
+50.4%
+26.1%
+27.7%
+47.0%
+49.8%
+53.6%
+58.4%
+RDSNet: A New Deep Architecture for Reciprocal Object Detection and Instance Segmentation [83]
+RDSNet
+RDSNet
+ResNet-101
+ResNet-101
+600
+800
+16.8 (V)
+10.9 (V)
+36.0%
+38.1%
+55.2%
+58.5%
+38.7%
+40.8%
+17.4%
+21.2%
+39.6%
+41.5%
+49.7%
+48.2%
+CenterMask: Real-Time Anchor-Free Instance Segmentation [40]
+CenterMask
+CenterMask
+ResNet-101-FPN
+VoVNet-99-FPN
+800×
+800×
+15.2 (V)
+12.9 (V)
+44.0%
+46.5%
+-
+-
+-
+-
+25.8%
+28.7%
+46.8%
+48.9%
+54.9%
+57.2%
+
+References
+[1] Navaneeth Bodla, Bharat Singh, Rama Chellappa, and
+Larry S Davis. Soft-NMS–improving object detection with
+one line of code. In Proceedings of the IEEE International
+Conference on Computer Vision (ICCV), pages 5561–5569,
+2017. 4
+[2] Zhaowei Cai and Nuno Vasconcelos. Cascade R-CNN:
+Delving into high quality object detection. In Proceedings
+of the IEEE Conference on Computer Vision and Pattern
+Recognition (CVPR), pages 6154–6162, 2018. 12
+[3] Jiale Cao, Yanwei Pang, Jungong Han, and Xuelong Li. Hi-
+erarchical shot detector.
+In Proceedings of the IEEE In-
+ternational Conference on Computer Vision (ICCV), pages
+9705–9714, 2019. 12
+[4] Ping Chao, Chao-Yang Kao, Yu-Shan Ruan, Chien-Hsiang
+Huang, and Youn-Long Lin. HarDNet: A low memory traf-
+ﬁc network. Proceedings of the IEEE International Confer-
+ence on Computer Vision (ICCV), 2019. 13
+[5] Liang-Chieh Chen, George Papandreou, Iasonas Kokkinos,
+Kevin Murphy, and Alan L Yuille. DeepLab: Semantic im-
+age segmentation with deep convolutional nets, atrous con-
+volution, and fully connected CRFs.
+IEEE Transactions
+on Pattern Analysis and Machine Intelligence (TPAMI),
+40(4):834–848, 2017. 2, 4
+[6] Pengguang Chen. GridMask data augmentation. arXiv
+preprint arXiv:2001.04086, 2020. 3
+[7] Yukang Chen, Tong Yang, Xiangyu Zhang, Gaofeng Meng,
+Xinyu Xiao, and Jian Sun. DetNAS: Backbone search for
+object detection. In Advances in Neural Information Pro-
+cessing Systems (NeurIPS), pages 6638–6648, 2019. 2
+[8] Jiwoong Choi, Dayoung Chun, Hyun Kim, and Hyuk-Jae
+Lee. Gaussian YOLOv3: An accurate and fast object de-
+tector using localization uncertainty for autonomous driv-
+ing. In Proceedings of the IEEE International Conference
+on Computer Vision (ICCV), pages 502–511, 2019. 7
+[9] Jifeng Dai, Yi Li, Kaiming He, and Jian Sun. R-FCN:
+Object detection via region-based fully convolutional net-
+works. In Advances in Neural Information Processing Sys-
+tems (NIPS), pages 379–387, 2016. 2
+[10] Jia Deng, Wei Dong, Richard Socher, Li-Jia Li, Kai Li,
+and Li Fei-Fei. ImageNet: A large-scale hierarchical im-
+age database. In Proceedings of the IEEE Conference on
+Computer Vision and Pattern Recognition (CVPR), pages
+248–255, 2009. 5
+[11] Terrance DeVries and Graham W Taylor.
+Improved reg-
+ularization of convolutional neural networks with CutOut.
+arXiv preprint arXiv:1708.04552, 2017. 3
+[12] Xianzhi Du, Tsung-Yi Lin, Pengchong Jin, Golnaz Ghiasi,
+Mingxing Tan, Yin Cui, Quoc V Le, and Xiaodan Song.
+SpineNet: Learning scale-permuted backbone for recog-
+nition and localization. arXiv preprint arXiv:1912.05027,
+2019. 2
+[13] Kaiwen Duan, Song Bai, Lingxi Xie, Honggang Qi, Qing-
+ming Huang, and Qi Tian. CenterNet: Keypoint triplets for
+object detection. In Proceedings of the IEEE International
+Conference on Computer Vision (ICCV), pages 6569–6578,
+2019. 2, 12
+
+[14] Cheng-Yang Fu, Mykhailo Shvets, and Alexander C Berg.
+RetinaMask: Learning to predict masks improves state-
+of-the-art single-shot detection for free.
+arXiv preprint
+arXiv:1901.03353, 2019. 12
+[15] Robert Geirhos, Patricia Rubisch, Claudio Michaelis,
+Matthias Bethge, Felix A Wichmann, and Wieland Brendel.
+ImageNet-trained cnns are biased towards texture; increas-
+ing shape bias improves accuracy and robustness. In Inter-
+national Conference on Learning Representations (ICLR),
+2019. 3
+[16] Golnaz Ghiasi, Tsung-Yi Lin, and Quoc V Le. DropBlock:
+A regularization method for convolutional networks. In Ad-
+vances in Neural Information Processing Systems (NIPS),
+pages 10727–10737, 2018. 3
+[17] Golnaz Ghiasi, Tsung-Yi Lin, and Quoc V Le. NAS-FPN:
+Learning scalable feature pyramid architecture for object
+detection. In Proceedings of the IEEE Conference on Com-
+puter Vision and Pattern Recognition (CVPR), pages 7036–
+7045, 2019. 2, 13
+[18] Ross Girshick. Fast R-CNN. In Proceedings of the IEEE In-
+ternational Conference on Computer Vision (ICCV), pages
+1440–1448, 2015. 2
+[19] Ross Girshick, Jeff Donahue, Trevor Darrell, and Jitendra
+Malik. Rich feature hierarchies for accurate object de-
+tection and semantic segmentation. In Proceedings of the
+IEEE Conference on Computer Vision and Pattern Recog-
+nition (CVPR), pages 580–587, 2014. 2, 4
+[20] Jianyuan Guo, Kai Han, Yunhe Wang, Chao Zhang, Zhao-
+hui Yang, Han Wu, Xinghao Chen, and Chang Xu. Hit-
+Detector: Hierarchical trinity architecture search for object
+detection. In Proceedings of the IEEE Conference on Com-
+puter Vision and Pattern Recognition (CVPR), 2020. 2
+[21] Kai Han, Yunhe Wang, Qi Tian, Jianyuan Guo, Chunjing
+Xu, and Chang Xu. GhostNet: More features from cheap
+operations.
+In Proceedings of the IEEE Conference on
+Computer Vision and Pattern Recognition (CVPR), 2020.
+5
+[22] Bharath Hariharan, Pablo Arbel ´aez, Ross Girshick, and
+Jitendra Malik. Hypercolumns for object segmentation
+and ﬁne-grained localization. In Proceedings of the IEEE
+Conference on Computer Vision and Pattern Recognition
+(CVPR), pages 447–456, 2015. 4
+[23] Kaiming He, Georgia Gkioxari, Piotr Doll ´ar, and Ross Gir-
+shick. Mask R-CNN.
+In Proceedings of the IEEE In-
+ternational Conference on Computer Vision (ICCV), pages
+2961–2969, 2017. 2
+[24] Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun.
+Delving deep into rectiﬁers: Surpassing human-level per-
+formance on ImageNet classiﬁcation.
+In Proceedings of
+the IEEE International Conference on Computer Vision
+(ICCV), pages 1026–1034, 2015. 4
+[25] Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun.
+Spatial pyramid pooling in deep convolutional networks for
+visual recognition.
+IEEE Transactions on Pattern Analy-
+sis and Machine Intelligence (TPAMI), 37(9):1904–1916,
+2015. 2, 4, 7
+[26] Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun.
+Deep residual learning for image recognition. In Proceed-
+ings of the IEEE Conference on Computer Vision and Pat-
+tern Recognition (CVPR), pages 770–778, 2016. 2
+[27] Andrew Howard, Mark Sandler, Grace Chu, Liang-Chieh
+Chen, Bo Chen, Mingxing Tan, Weijun Wang, Yukun Zhu,
+Ruoming Pang, Vijay Vasudevan, et al. Searching for Mo-
+bileNetV3. In Proceedings of the IEEE International Con-
+ference on Computer Vision (ICCV), 2019. 2, 4
+[28] Andrew G Howard, Menglong Zhu, Bo Chen, Dmitry
+Kalenichenko, Weijun Wang, Tobias Weyand, Marco An-
+dreetto, and Hartwig Adam. MobileNets: Efﬁcient con-
+volutional neural networks for mobile vision applications.
+arXiv preprint arXiv:1704.04861, 2017. 2, 4
+[29] Jie Hu, Li Shen, and Gang Sun. Squeeze-and-excitation
+networks. In Proceedings of the IEEE Conference on Com-
+puter Vision and Pattern Recognition (CVPR), pages 7132–
+7141, 2018. 4
+[30] Gao Huang, Zhuang Liu, Laurens Van Der Maaten, and Kil-
+ian Q Weinberger. Densely connected convolutional net-
+works.
+In Proceedings of the IEEE Conference on Com-
+puter Vision and Pattern Recognition (CVPR), pages 4700–
+4708, 2017. 2
+[31] Forrest N Iandola, Song Han, Matthew W Moskewicz,
+Khalid Ashraf, William J Dally, and Kurt Keutzer.
+SqueezeNet: AlexNet-level accuracy with 50x fewer pa-
+rameters and¡ 0.5 MB model size.
+arXiv preprint
+arXiv:1602.07360, 2016. 2
+[32] Sergey Ioffe and Christian Szegedy. Batch normalization:
+Accelerating deep network training by reducing internal co-
+variate shift. arXiv preprint arXiv:1502.03167, 2015. 6
+[33] Md Amirul Islam, Shujon Naha, Mrigank Rochan, Neil
+Bruce, and Yang Wang. Label reﬁnement network for
+coarse-to-ﬁne semantic segmentation.
+arXiv preprint
+arXiv:1703.00551, 2017. 3
+[34] Seung-Wook Kim, Hyong-Keun Kook, Jee-Young Sun,
+Mun-Cheon Kang, and Sung-Jea Ko. Parallel feature pyra-
+mid network for object detection.
+In Proceedings of the
+European Conference on Computer Vision (ECCV), pages
+234–250, 2018. 11
+[35] G ¨unter Klambauer, Thomas Unterthiner, Andreas Mayr,
+and Sepp Hochreiter. Self-normalizing neural networks.
+In Advances in Neural Information Processing Systems
+(NIPS), pages 971–980, 2017. 4
+[36] Gustav
+Larsson, Michael Maire,
+and Gregory
+Shakhnarovich.
+FractalNet: Ultra-deep neural net-
+works without residuals. arXiv preprint arXiv:1605.07648,
+2016. 6
+[37] Hei Law and Jia Deng. CornerNet: Detecting objects as
+paired keypoints. In Proceedings of the European Confer-
+ence on Computer Vision (ECCV), pages 734–750, 2018. 2,
+11
+[38] Hei Law, Yun Teng, Olga Russakovsky, and Jia Deng.
+CornerNet-Lite: Efﬁcient keypoint based object detection.
+arXiv preprint arXiv:1904.08900, 2019. 2
+[39] Svetlana Lazebnik, Cordelia Schmid, and Jean Ponce. Be-
+yond bags of features: Spatial pyramid matching for recog-
+nizing natural scene categories. In Proceedings of the IEEE
+Conference on Computer Vision and Pattern Recognition
+(CVPR), volume 2, pages 2169–2178. IEEE, 2006. 4
+[40] Youngwan Lee and Jongyoul Park. CenterMask: Real-time
+anchor-free instance segmentation.
+In Proceedings of the
+IEEE Conference on Computer Vision and Pattern Recog-
+nition (CVPR), 2020. 12, 13
+[41] Shuai Li, Lingxiao Yang, Jianqiang Huang, Xian-Sheng
+Hua, and Lei Zhang. Dynamic anchor feature selection for
+single-shot object detection. In Proceedings of the IEEE In-
+ternational Conference on Computer Vision (ICCV), pages
+6609–6618, 2019. 12
+[42] Yanghao Li, Yuntao Chen, Naiyan Wang, and Zhaoxiang
+Zhang. Scale-aware trident networks for object detection.
+In Proceedings of the IEEE International Conference on
+Computer Vision (ICCV), pages 6054–6063, 2019. 12
+[43] Zeming Li, Chao Peng, Gang Yu, Xiangyu Zhang, Yang-
+dong Deng, and Jian Sun. DetNet: Design backbone for
+object detection. In Proceedings of the European Confer-
+ence on Computer Vision (ECCV), pages 334–350, 2018.
+2
+[44] Tsung-Yi Lin, Piotr Doll ´ar, Ross Girshick, Kaiming He,
+Bharath Hariharan, and Serge Belongie. Feature pyramid
+networks for object detection. In Proceedings of the IEEE
+Conference on Computer Vision and Pattern Recognition
+(CVPR), pages 2117–2125, 2017. 2
+[45] Tsung-Yi Lin, Priya Goyal, Ross Girshick, Kaiming He,
+and Piotr Doll ´ar. Focal loss for dense object detection. In
+Proceedings of the IEEE International Conference on Com-
+puter Vision (ICCV), pages 2980–2988, 2017. 2, 3, 11, 13
+[46] Tsung-Yi Lin, Michael Maire, Serge Belongie, James
+Hays, Pietro Perona, Deva Ramanan, Piotr Doll ´ar, and
+C Lawrence Zitnick. Microsoft COCO: Common objects
+in context. In Proceedings of the European Conference on
+Computer Vision (ECCV), pages 740–755, 2014. 5
+[47] Songtao Liu, Di Huang, et al. Receptive ﬁeld block net for
+accurate and fast object detection.
+In Proceedings of the
+European Conference on Computer Vision (ECCV), pages
+385–400, 2018. 2, 4, 11
+[48] Songtao Liu, Di Huang, and Yunhong Wang. Learning spa-
+tial fusion for single-shot object detection. arXiv preprint
+arXiv:1911.09516, 2019. 2, 4, 13
+[49] Shu Liu, Lu Qi, Haifang Qin, Jianping Shi, and Jiaya Jia.
+Path aggregation network for instance segmentation.
+In
+Proceedings of the IEEE Conference on Computer Vision
+and Pattern Recognition (CVPR), pages 8759–8768, 2018.
+1, 2, 7
+[50] Wei Liu, Dragomir Anguelov, Dumitru Erhan, Christian
+Szegedy, Scott Reed, Cheng-Yang Fu, and Alexander C
+Berg. SSD: Single shot multibox detector. In Proceedings
+of the European Conference on Computer Vision (ECCV),
+pages 21–37, 2016. 2, 11
+[51] Jonathan Long, Evan Shelhamer, and Trevor Darrell. Fully
+convolutional networks for semantic segmentation. In Pro-
+ceedings of the IEEE Conference on Computer Vision and
+Pattern Recognition (CVPR), pages 3431–3440, 2015. 4
+[52] Ilya Loshchilov and Frank Hutter.
+SGDR: Stochas-
+tic gradient descent with warm restarts.
+arXiv preprint
+arXiv:1608.03983, 2016. 7
+[53] Ningning Ma, Xiangyu Zhang, Hai-Tao Zheng, and Jian
+Sun. ShufﬂeNetV2: Practical guidelines for efﬁcient cnn
+
+architecture design. In Proceedings of the European Con-
+ference on Computer Vision (ECCV), pages 116–131, 2018.
+2
+[54] Andrew L Maas, Awni Y Hannun, and Andrew Y Ng. Rec-
+tiﬁer nonlinearities improve neural network acoustic mod-
+els.
+In Proceedings of International Conference on Ma-
+chine Learning (ICML), volume 30, page 3, 2013. 4
+[55] Diganta Misra.
+Mish:
+A self
+regularized non-
+monotonic neural activation function.
+arXiv preprint
+arXiv:1908.08681, 2019. 4
+[56] Vinod Nair and Geoffrey E Hinton. Rectiﬁed linear units
+improve restricted boltzmann machines.
+In Proceedings
+of International Conference on Machine Learning (ICML),
+pages 807–814, 2010. 4
+[57] Jing Nie, Rao Muhammad Anwer, Hisham Cholakkal, Fa-
+had Shahbaz Khan, Yanwei Pang, and Ling Shao. Enriched
+feature guided reﬁnement network for object detection. In
+Proceedings of the IEEE International Conference on Com-
+puter Vision (ICCV), pages 9537–9546, 2019. 12
+[58] Jiangmiao Pang, Kai Chen, Jianping Shi, Huajun Feng,
+Wanli Ouyang, and Dahua Lin. Libra R-CNN: Towards bal-
+anced learning for object detection. In Proceedings of the
+IEEE Conference on Computer Vision and Pattern Recog-
+nition (CVPR), pages 821–830, 2019. 2, 12
+[59] Prajit Ramachandran, Barret Zoph, and Quoc V Le.
+Searching for activation functions.
+arXiv preprint
+arXiv:1710.05941, 2017. 4
+[60] Abdullah Rashwan, Agastya Kalra, and Pascal Poupart.
+Matrix Nets: A new deep architecture for object detection.
+In Proceedings of the IEEE International Conference on
+Computer Vision Workshop (ICCV Workshop), pages 0–0,
+2019. 2
+[61] Joseph Redmon, Santosh Divvala, Ross Girshick, and Ali
+Farhadi. You only look once: Uniﬁed, real-time object de-
+tection. In Proceedings of the IEEE Conference on Com-
+puter Vision and Pattern Recognition (CVPR), pages 779–
+788, 2016. 2
+[62] Joseph Redmon and Ali Farhadi. YOLO9000: better, faster,
+stronger. In Proceedings of the IEEE Conference on Com-
+puter Vision and Pattern Recognition (CVPR), pages 7263–
+7271, 2017. 2
+[63] Joseph Redmon and Ali Farhadi. YOLOv3: An incremental
+improvement. arXiv preprint arXiv:1804.02767, 2018. 2,
+4, 7, 11
+[64] Shaoqing Ren, Kaiming He, Ross Girshick, and Jian Sun.
+Faster R-CNN: Towards real-time object detection with re-
+gion proposal networks. In Advances in Neural Information
+Processing Systems (NIPS), pages 91–99, 2015. 2
+[65] Hamid Rezatoﬁghi, Nathan Tsoi, JunYoung Gwak, Amir
+Sadeghian, Ian Reid, and Silvio Savarese. Generalized in-
+tersection over union: A metric and a loss for bounding
+box regression. In Proceedings of the IEEE Conference on
+Computer Vision and Pattern Recognition (CVPR), pages
+658–666, 2019. 3
+[66] Mark Sandler, Andrew Howard, Menglong Zhu, Andrey
+Zhmoginov, and Liang-Chieh Chen. MobileNetV2:
+In-
+verted residuals and linear bottlenecks.
+In Proceedings
+of the IEEE Conference on Computer Vision and Pattern
+Recognition (CVPR), pages 4510–4520, 2018. 2
+[67] Abhinav Shrivastava, Abhinav Gupta, and Ross Girshick.
+Training region-based object detectors with online hard ex-
+ample mining. In Proceedings of the IEEE Conference on
+Computer Vision and Pattern Recognition (CVPR), pages
+761–769, 2016. 3
+[68] Karen Simonyan and Andrew Zisserman. Very deep convo-
+lutional networks for large-scale image recognition. arXiv
+preprint arXiv:1409.1556, 2014. 2
+[69] Krishna Kumar Singh, Hao Yu, Aron Sarmasi, Gautam
+Pradeep, and Yong Jae Lee. Hide-and-Seek: A data aug-
+mentation technique for weakly-supervised localization and
+beyond. arXiv preprint arXiv:1811.02545, 2018. 3
+[70] Saurabh Singh and Shankar Krishnan.
+Filter response
+normalization layer: Eliminating batch dependence in
+the training of deep neural networks.
+arXiv preprint
+arXiv:1911.09737, 2019. 6
+[71] Nitish Srivastava, Geoffrey Hinton, Alex Krizhevsky, Ilya
+Sutskever, and Ruslan Salakhutdinov. DropOut: A simple
+way to prevent neural networks from overﬁtting. The jour-
+nal of machine learning research, 15(1):1929–1958, 2014.
+3
+[72] K-K Sung and Tomaso Poggio. Example-based learning
+for view-based human face detection. IEEE Transactions
+on Pattern Analysis and Machine Intelligence (TPAMI),
+20(1):39–51, 1998. 3
+[73] Christian Szegedy, Vincent Vanhoucke, Sergey Ioffe, Jon
+Shlens, and Zbigniew Wojna. Rethinking the inception ar-
+chitecture for computer vision. In Proceedings of the IEEE
+Conference on Computer Vision and Pattern Recognition
+(CVPR), pages 2818–2826, 2016. 3
+[74] Mingxing Tan, Bo Chen, Ruoming Pang, Vijay Vasudevan,
+Mark Sandler, Andrew Howard, and Quoc V Le. MNAS-
+net: Platform-aware neural architecture search for mobile.
+In Proceedings of the IEEE Conference on Computer Vision
+and Pattern Recognition (CVPR), pages 2820–2828, 2019.
+2
+[75] Mingxing Tan and Quoc V Le. EfﬁcientNet: Rethinking
+model scaling for convolutional neural networks. In Pro-
+ceedings of International Conference on Machine Learning
+(ICML), 2019. 2
+[76] Mingxing Tan and Quoc V Le. MixNet: Mixed depthwise
+convolutional kernels.
+In Proceedings of the British Ma-
+chine Vision Conference (BMVC), 2019. 5
+[77] Mingxing Tan, Ruoming Pang, and Quoc V Le. Efﬁcient-
+Det: Scalable and efﬁcient object detection. In Proceedings
+of the IEEE Conference on Computer Vision and Pattern
+Recognition (CVPR), 2020. 2, 4, 13
+[78] Zhi Tian, Chunhua Shen, Hao Chen, and Tong He. FCOS:
+Fully convolutional one-stage object detection. In Proceed-
+ings of the IEEE International Conference on Computer Vi-
+sion (ICCV), pages 9627–9636, 2019. 2
+[79] Jonathan Tompson, Ross Goroshin, Arjun Jain, Yann Le-
+Cun, and Christoph Bregler. Efﬁcient object localization
+using convolutional networks. In Proceedings of the IEEE
+Conference on Computer Vision and Pattern Recognition
+(CVPR), pages 648–656, 2015. 6
+
+[93] Hang Zhang, Kristin Dana, Jianping Shi, Zhongyue Zhang,
+Xiaogang Wang, Ambrish Tyagi, and Amit Agrawal. Con-
+text encoding for semantic segmentation.
+In Proceedings
+of the IEEE Conference on Computer Vision and Pattern
+Recognition (CVPR), pages 7151–7160, 2018. 6
+[94] Shifeng Zhang, Cheng Chi, Yongqiang Yao, Zhen Lei, and
+Stan Z Li. Bridging the gap between anchor-based and
+anchor-free detection via adaptive training sample selec-
+tion. In Proceedings of the IEEE Conference on Computer
+Vision and Pattern Recognition (CVPR), 2020. 13
+[95] Shifeng Zhang, Longyin Wen, Xiao Bian, Zhen Lei, and
+Stan Z Li. Single-shot reﬁnement neural network for ob-
+ject detection. In Proceedings of the IEEE Conference on
+Computer Vision and Pattern Recognition (CVPR), pages
+4203–4212, 2018. 11
+[96] Xiaosong Zhang, Fang Wan, Chang Liu, Rongrong Ji, and
+Qixiang Ye. FreeAnchor: Learning to match anchors for
+visual object detection. In Advances in Neural Information
+Processing Systems (NeurIPS), 2019. 12
+[97] Xiangyu Zhang, Xinyu Zhou, Mengxiao Lin, and Jian Sun.
+ShufﬂeNet: An extremely efﬁcient convolutional neural
+network for mobile devices.
+In Proceedings of the IEEE
+Conference on Computer Vision and Pattern Recognition
+(CVPR), pages 6848–6856, 2018. 2
+[98] Qijie Zhao, Tao Sheng, Yongtao Wang, Zhi Tang, Ying
+Chen, Ling Cai, and Haibin Ling. M2det: A single-shot
+object detector based on multi-level feature pyramid net-
+work. In Proceedings of the AAAI Conference on Artiﬁcial
+Intelligence (AAAI), volume 33, pages 9259–9266, 2019. 2,
+4, 11
+[99] Zhaohui Zheng, Ping Wang, Wei Liu, Jinze Li, Rongguang
+Ye, and Dongwei Ren. Distance-IoU Loss: Faster and bet-
+ter learning for bounding box regression. In Proceedings
+of the AAAI Conference on Artiﬁcial Intelligence (AAAI),
+2020. 3, 4
+[100] Zhun Zhong, Liang Zheng, Guoliang Kang, Shaozi Li,
+and Yi Yang. Random erasing data augmentation. arXiv
+preprint arXiv:1708.04896, 2017. 3
+[101] Chenchen Zhu, Fangyi Chen, Zhiqiang Shen, and Mar-
+ios Savvides. Soft anchor-point object detection. arXiv
+preprint arXiv:1911.12448, 2019. 12
+[102] Chenchen Zhu, Yihui He, and Marios Savvides. Feature se-
+lective anchor-free module for single-shot object detection.
+In Proceedings of the IEEE Conference on Computer Vision
+and Pattern Recognition (CVPR), pages 840–849, 2019. 11
+[80] Li Wan, Matthew Zeiler, Sixin Zhang, Yann Le Cun, and
+Rob Fergus. Regularization of neural networks using Drop-
+Connect.
+In Proceedings of International Conference on
+Machine Learning (ICML), pages 1058–1066, 2013. 3
+[81] Chien-Yao Wang, Hong-Yuan Mark Liao, Yueh-Hua Wu,
+Ping-Yang Chen, Jun-Wei Hsieh, and I-Hau Yeh. CSPNet:
+A new backbone that can enhance learning capability of
+cnn. Proceedings of the IEEE Conference on Computer Vi-
+sion and Pattern Recognition Workshop (CVPR Workshop),
+2020. 2, 7
+[82] Jiaqi Wang, Kai Chen, Shuo Yang, Chen Change Loy, and
+Dahua Lin. Region proposal by guided anchoring. In Pro-
+ceedings of the IEEE Conference on Computer Vision and
+Pattern Recognition (CVPR), pages 2965–2974, 2019. 12
+[83] Shaoru Wang, Yongchao Gong, Junliang Xing, Lichao
+Huang, Chang Huang, and Weiming Hu. RDSNet: A
+new deep architecture for reciprocal object detection and
+instance segmentation. arXiv preprint arXiv:1912.05070,
+2019. 13
+[84] Tiancai Wang, Rao Muhammad Anwer, Hisham Cholakkal,
+Fahad Shahbaz Khan, Yanwei Pang, and Ling Shao. Learn-
+ing rich features at high-speed for single-shot object detec-
+tion. In Proceedings of the IEEE International Conference
+on Computer Vision (ICCV), pages 1971–1980, 2019. 11
+[85] Sanghyun Woo, Jongchan Park, Joon-Young Lee, and In
+So Kweon. CBAM: Convolutional block attention module.
+In Proceedings of the European Conference on Computer
+Vision (ECCV), pages 3–19, 2018. 1, 2, 4
+[86] Saining Xie, Ross Girshick, Piotr Doll ´ar, Zhuowen Tu, and
+Kaiming He. Aggregated residual transformations for deep
+neural networks. In Proceedings of the IEEE Conference on
+Computer Vision and Pattern Recognition (CVPR), pages
+1492–1500, 2017. 2
+[87] Ze Yang, Shaohui Liu, Han Hu, Liwei Wang, and Stephen
+Lin. RepPoints: Point set representation for object detec-
+tion. In Proceedings of the IEEE International Conference
+on Computer Vision (ICCV), pages 9657–9666, 2019. 2, 12
+[88] Lewei Yao, Hang Xu, Wei Zhang, Xiaodan Liang, and
+Zhenguo Li. SM-NAS: Structural-to-modular neural archi-
+tecture search for object detection. In Proceedings of the
+AAAI Conference on Artiﬁcial Intelligence (AAAI), 2020.
+13
+[89] Zhuliang Yao, Yue Cao, Shuxin Zheng, Gao Huang, and
+Stephen Lin. Cross-iteration batch normalization. arXiv
+preprint arXiv:2002.05712, 2020. 1, 6
+[90] Jiahui Yu, Yuning Jiang, Zhangyang Wang, Zhimin Cao,
+and Thomas Huang. UnitBox: An advanced object detec-
+tion network. In Proceedings of the 24th ACM international
+conference on Multimedia, pages 516–520, 2016. 3
+[91] Sangdoo Yun, Dongyoon Han, Seong Joon Oh, Sanghyuk
+Chun, Junsuk Choe, and Youngjoon Yoo. CutMix: Regu-
+larization strategy to train strong classiﬁers with localizable
+features. In Proceedings of the IEEE International Confer-
+ence on Computer Vision (ICCV), pages 6023–6032, 2019.
+3
+[92] Hongyi Zhang, Moustapha Cisse, Yann N Dauphin, and
+David Lopez-Paz. MixUp: Beyond empirical risk mini-
+mization. arXiv preprint arXiv:1710.09412, 2017. 3
+

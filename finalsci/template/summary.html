@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+{% load static %}
+<head>
+	<meta charset="UTF-8">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" >
+	<meta http-equiv=Content-Type content="text/html;charset=utf-8">
+    <title>摘要生成模块</title>
+	<link rel="stylesheet" href="{% static 'layui/css/layui.css' %}">
+    
+    <link rel="stylesheet" type="text/css" href="{% static 'css/summary.css' %}">
+</head>
+<body>
+    {% if message %}
+    <div style="font-size: larger;">{{ message }}</div>
+    {% endif %}
+
+    <div class="header">
+
+        <div class="layui-row">
+            <div class="layui-col-xs2">
+                <a href="http://127.0.0.1:8000/"><img src="{% static 'imgages/logo.jpg' %}" class="logo"></a>
+            </div>
+            <div class="layui-col-xs8">
+                <div class="grid-demo">
+                    <ul class="layui-nav layui-bg-cyan">
+                        
+                        <li class="layui-nav-item"><a href="" class="font_large">帮助</a></li>
+                        <li class="layui-nav-item"><a href="javascript:;" class="font_large">友情链接</a>
+                            <dl class="layui-nav-child">
+                                <dd><a href="https://arxiv.org/" target="_blank" >arXiv</a></dd>
+                                <dd><a href="https://www.cnki.net/" target="_blank">中国知网</a></dd>
+                                <dd><a href="https://scholar.google.com/" target="_blank" >谷歌学术搜索</a></dd>
+                                <dd><a href="https://translate.google.cn/" target="_blank">谷歌翻译</a></dd>
+                            </dl>
+                        </li>
+
+                        <li class="layui-nav-item">
+                        <a href="javascript:;" class="font_large">实用工具</a>
+                        <dl class="layui-nav-child">
+                            <dd><a href="/xiaogongju/" >PDF转WORD</a></dd>
+                            
+                            <dd><a href="/xiaogongju/" >PPT生成</a></dd>
+                        </dl>
+                        </li>
+                        <li class="layui-nav-item"><a href="https://github.com/jamie-ji" class="font_large">联系我们</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="layui-col-xs2">
+                <div class="grid-demo">
+                    <ul class="layui-nav layui-bg-cyan" >
+                        {% if request.session.is_login %}
+                        <li class="layui-nav-item">
+                            <a><img src="//t.cn/RCzsdCq" class="layui-nav-img">{{request.session.user_name}}</a>
+                            <dl class="layui-nav-child">
+                              <dd><a href="/self_index/">个人博物馆</a></dd>
+                              <dd><a href="/summary/">摘要生成</a></dd>
+                              <dd><a href="/logout/">退出登录</a></dd>
+                            </dl>
+                          </li>
+
+                        {% else %}
+                        <li class="layui-nav-item">
+                        <a href="/register" class="font_large">注册</a>
+                        </li>
+                        <li class="layui-nav-item">
+                        <a href="/login" class="font_large">登录</a>
+                        </li>
+                        {% endif %}
+                        
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <form enctype="multipart/form-data"  action="/summary/" method="post">
+    <div class="body">
+        <div class="button">
+        
+            
+                <input type="text" name="filepath" placeholder="输入文件绝对路径" class="layui-input" style="margin-left:400px;float:left;width: 500px;">
+                
+               
+                <i class="layui-icon"><input type="submit" value=" 上传文件" class="layui-btn" style="margin-right:300px;font-weight: 700;color: white;font-size: 1.25em;"></i>
+
+               
+        
+        </div>
+        <div class="zhongjian">
+            <div class="zuo_translate">
+                <label style="font-size: large;font-weight: bold;">摘要结果如下</label>
+                <br><br>
+                
+                <textarea rows="31" cols="70" name="input_translate" placeholder="摘要结果"  readonly style="white-space: pre-line;">{{abstracttxt}}{{englishresult}}{{result}}</textarea>
+                <!-- <textarea rows="31" cols="70" name="input_translate" placeholder="摘要结果"  readonly style="white-space: pre-line;">{{abstracttxt}}</textarea> -->
+            </div>
+            
+            
+            
+            <div class="you_summary">
+                <label style="font-size: large;font-weight: bold;">对结果不满意？</label>
+                <br>
+                <label style="font-size: small;font-weight: bold;">PDF处理时可能会出现误差，将您想要处理的文字粘贴在下方吧</label>
+                <br><br>
+                <textarea rows="13" cols="50" name="input_summary" placeholder="输入需要摘要的文字"  >{{needtosummary}}</textarea><br>
+                <input class="layui-btn" style="margin-top: 20px;margin-bottom: 20px;" type="submit" value="计算摘要"><br>
+                
+                <textarea rows="13" cols="50" name="input_translate" placeholder="摘要结果"  readonly>{{englishresult1}}{{result1}}</textarea>
+            </div>
+
+        </div>
+
+
+    </div>
+</form>
+<div class="foot">
+    <hr class="hr-twill-colorful">
+    <div class="layui-row">
+        <div class="layui-col-xs2">  &nbsp
+        </div>
+        <div class="layui-col-xs4" style="padding-top: 50px;">
+            <ul>
+                <li style="font-size: larger;font-weight: bolder;">产品介绍</li>
+                <li><br></li>
+                <li><a href="">摘要算法</a></li>
+                <li><a href="">实用工具</a></li>
+            </ul>
+            
+        </div>
+        <div class="layui-col-xs3" style="padding-top: 50px;">
+            <ul>
+                <li style="font-size: larger;font-weight: bolder;">文档</li>
+                <li><br></li>
+                <li><a href="">文档1</a></li>
+                <li><a href="">文档2</a></li>
+            </ul>
+            
+        </div>
+        <div class="layui-col-xs2" style="padding-top: 50px;">
+            <ul>
+                <li style="font-size: larger;font-weight: bolder;">联系我们</li>
+                <li><br></li>
+                <li><a href="https://github.com/jamie-ji">Github</a></li>
+                <li><a href="https://blog.csdn.net/JamieJi?spm=1000.2115.3001.5343">CSDN</a></li>
+            </ul>
+            
+        </div>
+        <div class="layui-col-xs2">
+            &nbsp
+        </div>
+
+    </div>
+</div>
+
+<div class="ground">
+    <img src="{% static 'imgages/logo.jpg' %}" class="ground_pic">
+
+    <p class="ground_word">Copyright © 2022  All rights reserved.<br><br>E-mail:jamieji0615@gmail.com</p>
+
+</div>    
+
+
+
+
+
+<script src="{% static 'layui/layui.js' %}"></script>
+
+
+</body>
+</html>

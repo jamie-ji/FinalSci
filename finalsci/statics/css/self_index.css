@@ -1,0 +1,48 @@
+.header{
+    background-color: #2f4056;
+    height: 70px;
+}
+.logo{
+    width:100%;
+    height:100%;
+    transform: scale(1);
+}
+.font_large{
+    font-size: large;
+}
+.cebian{
+    background-color: #393d49;
+    height: 690px;
+    width: 200px;
+}
+.body{
+    width: 100%;
+    height: 680px;
+}
+.body_second{
+    width: 100%;
+    height: 580px;
+    
+}
+.body_second_words{
+    padding-left: 280px;
+    padding-top: 150px;
+    font-size: xx-large;
+    
+    float: left;
+    
+}
+.body_second_picture_div{
+    padding-top: 150px;
+    padding-left: 100px;
+}
+.body_second_picture{
+    width: 30%;
+    padding-top: 150px;
+    padding-left: 100px;
+}
+.body_first{
+    
+    background-image: url('library.jpg') ;
+    background-size:cover;
+}
